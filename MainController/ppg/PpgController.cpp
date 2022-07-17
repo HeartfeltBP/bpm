@@ -3,13 +3,14 @@
 #include "Ppg.cpp"
 
 
-class PpgController {
+class PpgController 
+{
     private:
         int ppgPin, ledPin,
             samplingRate;
         bool diagnosticMode = false;
-        Led *LED;
-        Ppg *PPG;
+        Led LED;
+        Ppg PPG;
 
     public:
         // constructor
@@ -19,8 +20,8 @@ class PpgController {
             this->ledPin         = ledPin;
             this->samplingRate   = samplingRate;
 
-            this->PPG = new Ppg(this.ppgPin);
-            this->LED = new Led(this.ledPin);
+            this->PPG = Ppg(this->ppgPin);
+            this->LED = Led(this->ledPin);
         }
 
         int
@@ -43,9 +44,9 @@ class PpgController {
         }
 
         void
-        setLedVal()
+        setLedVal(int val)
         {
-            this->LED.setVal();
+            this->LED.setVal(val);
         }
         
         int
@@ -56,15 +57,13 @@ class PpgController {
             int val = 32;
             // test value, doesn't actually work
             // to get sampling rate
-            milli(this.samplingRate)
+            delay(this->samplingRate);
 
             // toggle the LED between small and big value
-            val == 32 ? val = 255 : val = 32;
-            this->LED.setLedVal(val);
+            val = (val == 32) ? 255 : 32;
+            this->LED.setVal(val);
 
-            return this->PPG.getPpgVal()
+            return this->PPG.getVal();
         }
-
-         
 
 };

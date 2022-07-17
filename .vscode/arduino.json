@@ -1,5 +1,6 @@
 {
     "port": "/dev/ttyACM0",
     "board": "arduino:samd:nano_33_iot",
-    "programmer": "arduino:atmel_ice"
+    "programmer": "arduino:atmel_ice",
+    "sketch": "MainController/MainController.ino"
 }

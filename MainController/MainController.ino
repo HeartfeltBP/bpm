@@ -7,20 +7,15 @@
 BLEService ppgService("180A");
 BLEByteCharacteristic switchCharacteristic("2A57", BLERead | BLEWrite);
 
+PpgController controllerPPG(PPG_PIN, LED_PIN, 100);
+
 void 
 setup()
 {
     // set Baud rate
     Serial.begin(9600);
-    PpgController *controllerPPG = new PpgController(PPG_PIN, LED_PIN, 100);
 
-    while (!Serial)
-        ;
-
-    if (!APDS.begin())
-    {
-        Serial.println("Error");
-    }
+    while (!Serial);
 
     if (!BLE.begin())
     {
@@ -31,7 +26,7 @@ setup()
     switchCharacteristic.writeValue(0);
 
     BLE.setLocalName("ActiveBP: Joe");
-    BLE.advertise;
+    BLE.advertise();
 
     Serial.println("ActiveBP Active");
 }
@@ -46,9 +41,9 @@ loop()
         Serial.println(central.address());
         digitalWrite(LED_BUILTIN, HIGH);
 
-        while(central.connected()) {
-            Serial.print("%d", controllerPPG.samplePpg())
-        }
+        // while(central.connected()) {
+        //     Serial.print("%d", (int)controllerPPG.samplePpg());
+        // }
     }
 }
 

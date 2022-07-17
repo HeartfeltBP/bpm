@@ -1,10 +1,10 @@
-#include <DigitalIO.h>
 
 /**
  * Driver for LEDs connected to analog pins on Arduino (A0 -> A7)
  * 
  */
-class Led {
+class Led 
+{
     private:
         int ledPin;
         // uses onboard LED for testing
@@ -19,7 +19,7 @@ class Led {
                 pinMode(LED_BUILTIN, OUTPUT);
             } else {
                 this->ledPin = ledPin;
-                pinMode(this->ledPin, OUTPUT)
+                pinMode(this->ledPin, OUTPUT);
             }
             // printf("%d\n", led);
         }
@@ -35,7 +35,11 @@ class Led {
         int
         setVal(int ledVoltage) 
         {
-            analogWrite(this->ledPin);
+            if(!this->ledPin) {
+                perror("ERROR: led pin not set");
+                return -1;
+            }
+            analogWrite(this->ledPin, ledVoltage);
             if(analogRead(this->ledPin) != ledVoltage) {
                 perror("ERROR: LED voltage was not set");
                 return -1;

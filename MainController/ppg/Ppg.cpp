@@ -1,4 +1,3 @@
-#include <DigitalIO.h>
 
 class Ppg {
     private:
@@ -8,13 +7,13 @@ class Ppg {
         // constructor
         Ppg(int ppgPin) 
         {
-            this.ppgPin = ppgPin;
+            this->ppgPin = ppgPin;
             pinMode(ppgPin, INPUT);
         }
 
         int
         getVal() 
         {
-            return analogRead(this.ppgPin);
+            return analogRead(this->ppgPin);
         }
 };
