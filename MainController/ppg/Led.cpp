@@ -11,8 +11,8 @@ class Led
         bool diagnosticMode = false;
 
     public:
-        // constructor
-        Led(int ledPin) 
+        // constructor with default pin value of A1
+        Led(int ledPin = A1) 
         {
             // support for only single LED for now
             if (diagnosticMode) {
@@ -45,6 +45,12 @@ class Led
                 return -1;
             }
             return 0;
+        }
+
+        int
+        setPin(int pin)
+        {
+            this->ledPin = pin;
         }
 
         int 

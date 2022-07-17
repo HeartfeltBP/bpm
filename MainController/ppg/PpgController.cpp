@@ -14,14 +14,14 @@ class PpgController
 
     public:
         // constructor
-        PpgController(int ppgPin, int ledPin, int samplingRate) 
+        PpgController(int ppgPin, int ledPin, int samplingRate)
         {
             this->ppgPin         = ppgPin;
             this->ledPin         = ledPin;
             this->samplingRate   = samplingRate;
 
-            this->PPG = Ppg(this->ppgPin);
-            this->LED = Led(this->ledPin);
+            this->PPG = Ppg(ppgPin);
+            this->LED = Led(ledPin);
         }
 
         int

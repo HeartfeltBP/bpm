@@ -4,11 +4,17 @@ class Ppg {
         int ppgPin;
 
     public:
-        // constructor
-        Ppg(int ppgPin) 
+        // constructor with default PPG pin A0
+        Ppg(int ppgPin = A0) 
         {
             this->ppgPin = ppgPin;
             pinMode(ppgPin, INPUT);
+        }
+
+        int
+        setPin(int pin)
+        {
+            this->ppgPin = pin;
         }
 
         int
