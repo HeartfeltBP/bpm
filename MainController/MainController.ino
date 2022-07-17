@@ -35,15 +35,19 @@ void
 loop()
 {
     BLEDevice central = BLE.central();
+    char buffer[50];
+    int sampleResult;
 
     if (central) {
         Serial.print("Connected to central: ");
         Serial.println(central.address());
         digitalWrite(LED_BUILTIN, HIGH);
 
-        // while(central.connected()) {
-        //     Serial.print("%d", (int)controllerPPG.samplePpg());
-        // }
+        while(central.connected()) {
+            sampleResult = controllerPPG.samplePpg();
+            //sprintf(buffer, "PPG Value |: %d", sampleResult);
+            Serial.println(sampleResult);
+        }
     }
 }
 
