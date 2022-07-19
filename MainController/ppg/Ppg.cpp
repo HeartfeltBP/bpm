@@ -4,8 +4,8 @@ class Ppg {
         int ppgPin;
 
     public:
-        // constructor with default PPG pin A0
-        Ppg(int ppgPin = A0) 
+        // constructor
+        Ppg(int ppgPin = 6) 
         {
             this->ppgPin = ppgPin;
             pinMode(ppgPin, INPUT);
@@ -13,13 +13,13 @@ class Ppg {
 
         int
         setPin(int pin)
-        {
-            this->ppgPin = pin;
-        }
+        { this->ppgPin = pin; }
+
+        int
+        getPin()
+        { return this->ppgPin; }
 
         int
         getVal() 
-        {
-            return analogRead(this->ppgPin);
-        }
+        { return analogRead(this->ppgPin); }
 };

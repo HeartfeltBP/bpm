@@ -11,8 +11,8 @@ class Led
         bool diagnosticMode = false;
 
     public:
-        // constructor with default pin value of A1
-        Led(int ledPin = A1) 
+        // constructor
+        Led(int ledPin = 5) 
         {
             // support for only single LED for now
             if (diagnosticMode) {
@@ -27,16 +27,13 @@ class Led
         // multiple LEDs and accompanying logic
 
         void
-        setDiagnostic(bool set)
-        {
-            this->diagnosticMode = set;
-        }
+        setDiagnostic(bool set) { this->diagnosticMode = set; }
 
         int
         setVal(int ledVoltage) 
         {
             if(!this->ledPin) {
-                perror("ERROR: led pin not set");
+                perror("ERROR: led pin not initialized");
                 return -1;
             }
             analogWrite(this->ledPin, ledVoltage);
@@ -48,14 +45,8 @@ class Led
         }
 
         int
-        setPin(int pin)
-        {
-            this->ledPin = pin;
-        }
+        setPin(int pin) { this->ledPin = pin; }
 
         int 
-        getVal()
-        {
-            analogRead(this->ledPin);
-        }
+        getPin() { return this->ledPin; }
 };
