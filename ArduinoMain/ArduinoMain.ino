@@ -1,34 +1,40 @@
-#include <ArduinoBLE.h>
-#include "./ppg/PpgController.cpp"
-
 #include <iostream>
-#include <queue>
+#include "./component/component.hpp"
+#include "./sensor/sensor.hpp"
+#include <ArduinoBLE.h>
+#include <RTCZero.h>
+#include <ArduinoLowPower.h>
+#include <list>
 
 #define LED_PIN 5
 #define PPG_PIN 6
 
+RTCZero rtc;
+
 BLEService ppgService("180A");
-BLEByteCharacteristic switchCharacteristic("2A57", BLERead | BLENotify);
-PpgController controllerPPG(PPG_PIN, LED_PIN, 1000);
+BLEByteCharacteristic switchCharacteristic("2A57", BLERead | BLEWrite);
+sensor::SensorPpg controllerPPG(PPG_PIN, LED_PIN, 1000);
 
 int i;
-std::queue<int> bleQueue;
+std::list<int> bleList;
 int sampleResult;
 
-void 
-setup()
+void setup()
 {
     // set Baud rate
-    Serial.begin(9600);
-    i = 1;
+    Serial.begin(115200);
+    
+    // initialize the internal real-time-clock
+    rtc.begin();
+
+    i = 0;
 
     // loop until serial connection opens - diagnostic
-    while (!Serial);
+    while (!Serial)
+        ;
 
     if (!BLE.begin())
     {
-        Serial.println("* Starting Bluetooth® Low Energy module failed!");
-        while (1);
     }
 
     switchCharacteristic.writeValue(0);
@@ -39,55 +45,60 @@ setup()
     Serial.println("ActiveBP active");
 }
 
-void
-loop()
+void loop()
 {
-    BLEDevice central = BLE.central();
 
     sampleResult = controllerPPG.samplePpg();
-    delay(1000);
 
-    Serial.print("LED PIN: ");
-    Serial.print(controllerPPG.getLedPin());
-    Serial.print(" | PPG PIN: ");
-    Serial.print(controllerPPG.getPpgPin());
-    Serial.print(" | PPG output: ");
-    Serial.println(sampleResult);
-
-    if (central) {
+    if (central)
+    {
         Serial.println("bluetooth connected");
         Serial.println(central.address());
         digitalWrite(LED_BUILTIN, HIGH);
 
-        while(central.connected()) {
+        while (central.connected())
+        {
             sampleResult = controllerPPG.samplePpg();
             Serial.print("OUTPUT | ");
             Serial.print(i);
             Serial.print(": ");
             Serial.println(sampleResult);
-            bleQueue.push(sampleResult);
-            delay(500);
+            bleList.push_front(sampleResult);
+            delay(200);
 
-            if(bleQueue.size() >= 20) {
+            if (bleList.size() >= 20)
+            {
                 int buffer[20];
+                Serial.println();
                 Serial.println("-----------------------------------------");
-                for(int b = 0; b < 20; b++) {
-                    buffer[b] = bleQueue.front();
-                    bleQueue.pop();
+                for (int b = 0; b < 20; b++)
+                {
+                    buffer[b] = bleList.front();
+                    bleList.pop_front();
 
                     Serial.print("Buffer Index | ");
                     Serial.print(b);
                     Serial.print(": ");
                     Serial.println(buffer[b]);
                 }
+                Serial.println("Buffer Created");
                 Serial.println("-----------------------------------------");
                 Serial.print("Buffer END - Transmitted Size (bytes): ");
                 Serial.println(sizeof(buffer));
+
                 switchCharacteristic.writeValue((int)buffer);
+                Serial.println("Buffer Sent");
+                Serial.println();
                 i = 0;
-            } 
+            }
             i++;
         }
+    } else {
+        // delay before attempting to connect again
+        delay(200);
+        /* TODO:    sleep after certain amount of cycles/time - design state 
+                    machine to make the search - connect - connected loop
+                    clearer */
+
     }
 }
-
