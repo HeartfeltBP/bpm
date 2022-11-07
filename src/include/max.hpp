@@ -1,46 +1,27 @@
 #ifndef HF_BPM_MAX
 #define HF_BPM_MAX
 
-// #include <string>
-#include <Wire.h>
-// #include <map>
 
-#define ARDUINOJSON_USE_LONG_LONG 0
 #include <ArduinoJson.hpp>
+#include <Wire.h>
 
+// #include <string>
+// #include <map>
 #include <array>
-#include <WiFiNINA.h>
-// #include <utility>
-// #include <vector>
+#include <utility>
+#include <vector>
 
 #define WINDOW_SIZE 256
 #define FRAME_SIZE 64
 
 #define SR 200 // Sampling rate remove when reg lib fully implemented
 #define ST 5   // Sampling period (ms) ^
-// #include <array> conflicts with arduino::String somehow?
-// modified in stdexcept file -> used basic_string<char> instead of String<char>
-// latter conflicts with Arduino string
+
+
+#include ".env.h" // WiFi credentials
+
 namespace hf
 {
-    // reg, value
-    // typedef std::pair<byte, byte> reg_pair;
-
-    class Reg
-    {
-        // unused for now
-        protected:
-        // maybe start following _ convention for e.g. _address
-        const byte _address;
-        byte _localVal;
-
-        Reg(byte address, byte localVal = 0)
-        : _address{address}, _localVal{localVal} {}
-
-        public:
-        byte getLocalVal() {return _localVal;}
-        void setLocalVal(byte val) {_localVal = val;}
-    };  
 
     class MaxSensor 
     {
@@ -54,20 +35,14 @@ namespace hf
             // std::map<std::string, Reg> _rmap;
             // std::map<byte, byte> _localRegi;
             std::vector<uint32_t> _ppgWindow;
+            // BpmWiFi _bpmWiFi;
 
 
         public:
-            // TODO: have parameter (flatbuffer) in overloaded constructor to have custom settings
-            // deconstruct at set registers (store register values locally using kv pairs -not strings)
-            // human readable interface will be json config file that will be read and sent to the 
-            // arduino
+        
             MaxSensor(byte i2cAddress = 0x5E)
             : _i2cAddress{i2cAddress}
-            {
-                // TODO: figure out why this doesn't work
-                // _i2c.begin();
-                // _i2c.setClock(400000);
-            }
+            {}
 
             void initRegi() 
             {
@@ -194,16 +169,15 @@ namespace hf
                                 tempLong &= 0x7FFFF;
 
                                 _ppgWindow.push_back(tempLong);
+
+                                if(_ppgWindow.size() >= WINDOW_SIZE) {
+                                    
+                                }
+                                
                                 // Serial.println(_ppgWindow.size());
 
-                                if(_ppgWindow.size() > WINDOW_SIZE) {
-                                    transmitWindow(_ppgWindow.data());
-                                    _ppgWindow.clear();
-                                }
-
-                                // Serial.print(_ppgWindow.back());
+                                Serial.print(_ppgWindow.back());
                                 // Serial.println(',');
-
 
                                 tempRem -= 3;
                                 delay(1);
@@ -213,21 +187,14 @@ namespace hf
                 }
             }
 
-            void transmitWindow(uint32_t *window) 
-            {
-                // Serial.println("{");
-                for(int i = 0; i < WINDOW_SIZE; i++) {
-                    Serial.println(window[i]);
-                }
-                // Serial.println("}");
-                // ArduinoJson::StaticJsonDocument<WINDOW_SIZE * sizeof(uint32_t)> ppgJson;
-                // ArduinoJson::copyArray(*window, ppgJson.to<ArduinoJson::JsonArray>());
-                // ArduinoJson::serializeJsonPretty(ppgJson, Serial);
-            }
-
             std::vector<uint32_t> getWindow()
             {
                 return _ppgWindow;
+            }
+
+            void clearWindow()
+            {
+                _ppgWindow.clear();
             }
 
             // int sampleSensor()
