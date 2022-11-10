@@ -171,7 +171,7 @@ namespace hf
                                 _ppgWindow.push_back(tempLong);
 
                                 if(_ppgWindow.size() >= WINDOW_SIZE) {
-                                    
+                                    return;
                                 }
                                 
                                 // Serial.println(_ppgWindow.size());
@@ -189,7 +189,9 @@ namespace hf
 
             std::vector<uint32_t> getWindow()
             {
-                return _ppgWindow;
+                std::vector<uint32_t> tmp = _ppgWindow;
+                clearWindow();
+                return tmp;
             }
 
             void clearWindow()

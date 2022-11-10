@@ -29,7 +29,6 @@ namespace hf
             BpmWiFi(std::string url = URL, std::string ssid = SSID, std::string password = PASS)
             : _url{url} {
                 int status;
-
                 status = connectWiFi(ssid, password);
 
                 if (status < 0) {
