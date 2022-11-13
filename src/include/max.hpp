@@ -10,6 +10,7 @@
 #include <array>
 #include <utility>
 #include <vector>
+#include "bpmWiFi.hpp"
 
 #define WINDOW_SIZE 256
 #define FRAME_SIZE 64
@@ -35,7 +36,7 @@ namespace hf
             // std::map<std::string, Reg> _rmap;
             // std::map<byte, byte> _localRegi;
             std::vector<uint32_t> _ppgWindow;
-            // BpmWiFi _bpmWiFi;
+            BpmWiFi _bpmWiFi;
 
 
         public:
@@ -78,6 +79,11 @@ namespace hf
                 clearFifo();
             }
 
+            void maxInit() {
+                initRegi();
+                _bpmWiFi.initWiFi(SSID, PASS, URL);
+            }
+
             void writeRegister(byte reg, byte value)
             {  
                 // fix
@@ -116,9 +122,9 @@ namespace hf
             void clearFifo(void) 
             {
                 // reset 0x04 = FIFO write ptr, 0x05 = FIFO overflow, 0x06 = FIFO read ptr
-                this->writeRegister(byte(0x04), 0);
-                this->writeRegister(byte(0x05), 0);
-                this->writeRegister(byte(0x06), 0);
+                writeRegister(byte(0x04), 0);
+                writeRegister(byte(0x05), 0);
+                writeRegister(byte(0x06), 0);
             }
 
             void fifoReadLoop() {
@@ -167,18 +173,17 @@ namespace hf
                                 memcpy(&tempLong, tempArr, sizeof(tempLong));
                                 // zero all but 19 bits - why?
                                 tempLong &= 0x7FFFF;
-
                                 _ppgWindow.push_back(tempLong);
 
-                                if(_ppgWindow.size() >= WINDOW_SIZE) {
-                                    return;
-                                }
-                                
-                                // Serial.println(_ppgWindow.size());
-
-                                Serial.print(_ppgWindow.back());
+                                // Serial.print(_ppgWindow.back());
                                 // Serial.println(',');
 
+                                if(_ppgWindow.size() >= WINDOW_SIZE) {
+                                    // _bpmWiFi.getTest();
+                                    _bpmWiFi.txWindow(_ppgWindow);
+                                    delay(10);
+                                    _ppgWindow.clear();
+                                }
                                 tempRem -= 3;
                                 delay(1);
                             }
@@ -187,7 +192,7 @@ namespace hf
                 }
             }
 
-            std::vector<uint32_t> getWindow()
+            std::vector<uint32_t> getCurWindow()
             {
                 std::vector<uint32_t> tmp = _ppgWindow;
                 clearWindow();
@@ -210,8 +215,6 @@ namespace hf
             }
 
     };
-
-
 }
 
 #endif // HF_MAX

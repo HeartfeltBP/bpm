@@ -5,21 +5,33 @@
 
 #include <string>
 #include <vector>
+#include <array>
 
 #include <ArduinoJson.hpp>
 #include <WiFiNINA.h>
+#include <HttpClient.h>
 
 #include ".env.h" // WiFi credentials
 
 namespace hf
 {
+    static const std::string apiEndpoints[2] = {
+            "api/rx/",
+            "api/test/"
+        };
+
+    static const std::string jsonReciever = apiEndpoints[0];
+    static const std::string testEndpoint = apiEndpoints[1];
+
     class BpmWiFi
     {
         protected:
         std::string _url;
         WiFiClient _client;
+        HttpClient _http = HttpClient(_client, URL, LPORT);
+
         byte _wlStatus = WL_IDLE_STATUS;
-        byte _clStatus;
+        byte _clStatus = 0;
 
         public:
             // add .env or something for pass management (maybe just don't handle on arduino somehow?)
@@ -27,106 +39,125 @@ namespace hf
 
             // place within try catch block
             BpmWiFi(std::string url = URL, std::string ssid = SSID, std::string password = PASS)
-            : _url{url} {
-                int status;
-                status = connectWiFi(ssid, password);
-
-                if (status < 0) {
-                    // std::__throw_runtime_error("connectWiFi failed");
-                    Serial.println("FAILED");
-                } else {
-                    status = connectClient(url);
-                    if (status < 0) {
-                        // std::__throw_runtime_error("connectClient failed");
-                        Serial.println("FAILED");
-                    }
-                }
-            }
+            : _url{url} {}
 
             int connectWiFi(std::string ssid, std::string password)
             {
-                if(WiFi.status() == WL_NO_MODULE) {
-                    // std::__throw_runtime_error("No WiFi module detected!");
+                if (WiFi.status() == WL_NO_MODULE)
+                {
                     return -1;
                 }
-                _wlStatus = WiFi.begin(ssid.c_str(), password.c_str());
-
+                _wlStatus = WiFi.begin(SSID, PASS);
+                delay(500);
+                
                 if(_wlStatus != WL_CONNECTED) {
-                    Serial.println("WiFi not connected, retrying...");
+                    int giveUp = 20;
+                    while (_wlStatus != WL_CONNECTED)
+                    {
+                        Serial.print("WiFi connect attempt failed, trying again ");
+                        Serial.print(giveUp); Serial.println(" reconnect attempts left...");
+                        Serial.print("WiFi status: "); Serial.println(_wlStatus);
+                        _wlStatus = WiFi.begin(SSID, PASS);
+                        if(giveUp <= 0) {Serial.print("Giving up: setup failed"); return -1;}
+                        giveUp--;
+                        delay(2000);
+                    }
                 }
-
-                delay(10);
-                _wlStatus = WiFi.begin(ssid.c_str(), password.c_str());
-
-                if(_wlStatus != WL_CONNECTED) {
-                    _wlStatus = WL_DISCONNECTED;
-                    return -1;
-                }
-                // maybe print to log file or BLE characteristic or something?
-                Serial.print("WiFi connected to ");
-                Serial.println(ssid.c_str());
-
                 return 0;
             }
 
             int connectClient(std::string url)
             {
-                _clStatus = _client.connect(url.c_str(), 80);
+                _clStatus = _client.connect(URL, LPORT);
 
-                if(_clStatus) {
-                    Serial.print("Client connected to ");
-                    Serial.println(url.c_str());
-                    return 0;
-                } else {
-                    Serial.println("Client failed to connect");
-                    return -1;
+                if(!_clStatus) {
+                    int giveUp = 20;
+                    while (!_clStatus)
+                    {
+                        Serial.print("Client connect attempt failed, trying again ");
+                        Serial.print(giveUp); Serial.println(" reconnect attempts left...");
+                        Serial.print("Client status: "); Serial.println(_clStatus);
+                        _clStatus = _client.connect(URL, LPORT);
+                        if(giveUp <= 0) {Serial.print("Giving up: setup failed"); return -1;}
+                        giveUp--;
+                        delay(2000);
+                    }
                 }
+                return 0;
             }
 
-            void txWindow(std::vector<uint32_t> ppgWindow) 
-            {
-                if(!_clStatus || !_wlStatus) {
-                    return;
-                }
+            int initWiFi(std::string ssid, std::string pass, std::string url) {
+                if(connectWiFi(ssid, pass) >= 0 && connectClient(url) >= 0 ) {
+                    return 0;
+                } else { return -1; }
+            }
 
-                int txArr[256];
-                
-                // find a way to avoid doing this
-                // for(int i = 0; i < WINDOW_SIZE; i++) {
-                //     txArr[i] = _ppgWindow.data()[i];
-                // }
+            void txWindow(std::vector<uint32_t> ppgWindow) {
+                if (WiFi.status() != WL_CONNECTED || !_client.status()) {retryWiFi();}
 
-                // std::copy(&_ppgWindow.front(), &_ppgWindow.back(), txArr);
-                std::copy(&ppgWindow.front(), &ppgWindow.at(256), txArr);
-                
                 ArduinoJson::StaticJsonDocument<256 * 4> ppgJson;
-                ArduinoJson::copyArray(txArr, ppgJson.to<ArduinoJson::JsonArray>());
-                ArduinoJson::serializeJsonPretty(ppgJson, Serial);
+                int tmpArr[256] = {0};
+                memset(tmpArr, 69, 256);
+
+                ArduinoJson::copyArray(tmpArr, ppgJson.to<ArduinoJson::JsonArray>());
                 
-                std::string tmpString = "POST " + jsonReciever + " HTTP/1.1";
+                std::string tmpUrl = URL;
+                std::string header = "POST " + jsonReciever + " HTTP/1.1\n" +
+                                        "Host: " + tmpUrl + "\n" +
+                                        "User-Agent: Arduino/1.0\n" +
+                                        "Accept: */*\n" +
+                                        "Cache-Control: no-cache\n" +
+                                        "Accept-Encoding: gzip, deflate, br\n" +
+                                        "Content-Type: application/json\n" +
+                                        "Content-Length: " + std::to_string(ppgJson.size()) +
+                                        "\n\n";
+                
+                delete &tmpUrl;
+                _client.println(header.c_str());
+                Serial.println(header.c_str());
+                ArduinoJson::serializeJson(ppgJson, _client);
+                ArduinoJson::serializeJsonPretty(ppgJson, Serial);
+                // Serial.println("{}");
+                // _client.println("{}");
+                Serial.println("Sent");
+                Serial.println(_client.readString());
+
+                delete &header;
+                // delete &ppgJson;
+            }   
+
+            void getTest() {
+                if (WiFi.status() != WL_CONNECTED || !_client.status()) {retryWiFi();}
+                
+                std::string tmpString = "GET " + testEndpoint + " HTTP/1.1";
                 Serial.println(tmpString.c_str());
                 _client.println(tmpString.c_str());
 
-                tmpString = "Host: " + _url;
-                _client.println(tmpString.c_str());
+                std::string tmpUrl = URL;
+                tmpString = "Host: " + tmpUrl;
 
-                _client.println("Content-Type: application/json");
-                _client.println("Accept: */*"); // Set MIME types
-                _client.println("Cache-Control: no-cache");
-                _client.println("Accept-Encoding: gzip, deflate");
-                _client.println("Accept-Language: en-us");
-
-                tmpString = "Conetent-Length: " + ppgWindow.size();
                 _client.println(tmpString.c_str());
                 
+                delete &tmpString;
+
                 _client.println("Connection: close");
                 _client.println();
-                ArduinoJson::serializeJson(ppgJson, _client);
-                _client.println();
 
+                Serial.println(_client.readString());
+                Serial.println("Sent");
             }
 
-            
+            void retryWiFi() {
+                if (WiFi.status() != WL_CONNECTED) {
+                    _client.stop();
+                    WiFi.end();
+                    initWiFi(SSID, PASS, URL);
+                }
+                if (!_client.status()) {
+                     _client.stop();
+                     connectClient(URL);
+                }
+            }
 
     };
 }
