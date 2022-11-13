@@ -16,8 +16,8 @@
 namespace hf
 {
     static const std::string apiEndpoints[2] = {
-            "api/rx/",
-            "api/test/"
+            "/api/rx/",
+            "/api/test/"
         };
 
     static const std::string jsonReciever = apiEndpoints[0];
@@ -60,7 +60,7 @@ namespace hf
                         _wlStatus = WiFi.begin(SSID, PASS);
                         if(giveUp <= 0) {Serial.print("Giving up: setup failed"); return -1;}
                         giveUp--;
-                        delay(2000);
+                        delay(1000);
                     }
                 }
                 return 0;
@@ -80,7 +80,7 @@ namespace hf
                         _clStatus = _client.connect(URL, LPORT);
                         if(giveUp <= 0) {Serial.print("Giving up: setup failed"); return -1;}
                         giveUp--;
-                        delay(2000);
+                        delay(1000);
                     }
                 }
                 return 0;
@@ -95,56 +95,34 @@ namespace hf
             void txWindow(std::vector<uint32_t> ppgWindow) {
                 if (WiFi.status() != WL_CONNECTED || !_client.status()) {retryWiFi();}
 
-                ArduinoJson::StaticJsonDocument<256 * 4> ppgJson;
-                int tmpArr[256] = {0};
-                memset(tmpArr, 69, 256);
+                uint32_t txArr[256];
+                std::copy(ppgWindow.begin(), ppgWindow.end(), txArr);
+                ArduinoJson::StaticJsonDocument<256 * 16> ppgJson;
+                ArduinoJson::copyArray(txArr, ppgJson.to<ArduinoJson::JsonArray>());
+                Serial.println(ppgJson.data().size());
 
-                ArduinoJson::copyArray(tmpArr, ppgJson.to<ArduinoJson::JsonArray>());
-                
-                std::string tmpUrl = URL;
-                std::string header = "POST " + jsonReciever + " HTTP/1.1\n" +
-                                        "Host: " + tmpUrl + "\n" +
-                                        "User-Agent: Arduino/1.0\n" +
-                                        "Accept: */*\n" +
-                                        "Cache-Control: no-cache\n" +
-                                        "Accept-Encoding: gzip, deflate, br\n" +
-                                        "Content-Type: application/json\n" +
-                                        "Content-Length: " + std::to_string(ppgJson.size()) +
-                                        "\n\n";
-                
-                delete &tmpUrl;
-                _client.println(header.c_str());
-                Serial.println(header.c_str());
-                ArduinoJson::serializeJson(ppgJson, _client);
-                ArduinoJson::serializeJsonPretty(ppgJson, Serial);
-                // Serial.println("{}");
-                // _client.println("{}");
-                Serial.println("Sent");
-                Serial.println(_client.readString());
+                _http.beginRequest();
+                _http.post(jsonReciever.c_str());
+                _http.sendHeader("User-Agent", "Arduino/1.0");
+                _http.sendHeader("Content-Type", "application/json");
+                // TODO: figure out how tf Content-length is calculated?
+                _http.sendHeader("Content-Length", 1281);
+                _http.sendHeader("Connection", "keep-alive");
+                _http.beginBody();
+                ArduinoJson::serializeJson(ppgJson, _http);
+                ArduinoJson::serializeJson(ppgJson, Serial);
+                _http.endRequest();
 
-                delete &header;
-                // delete &ppgJson;
+                ppgJson.clear();
+                ppgJson.garbageCollect();
+                delete &ppgJson;
+                // Serial.print(_http.responseBody());
             }   
 
             void getTest() {
                 if (WiFi.status() != WL_CONNECTED || !_client.status()) {retryWiFi();}
-                
-                std::string tmpString = "GET " + testEndpoint + " HTTP/1.1";
-                Serial.println(tmpString.c_str());
-                _client.println(tmpString.c_str());
-
-                std::string tmpUrl = URL;
-                tmpString = "Host: " + tmpUrl;
-
-                _client.println(tmpString.c_str());
-                
-                delete &tmpString;
-
-                _client.println("Connection: close");
-                _client.println();
-
-                Serial.println(_client.readString());
-                Serial.println("Sent");
+                _http.get(testEndpoint.c_str());
+                Serial.print(_http.responseBody());
             }
 
             void retryWiFi() {
