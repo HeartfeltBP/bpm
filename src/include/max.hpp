@@ -11,6 +11,7 @@
 #include <utility>
 #include <vector>
 #include "bpmWiFi.hpp"
+#include <Arduino_LSM6DS3.h>
 
 #define WINDOW_SIZE 256
 #define FRAME_SIZE 64
@@ -175,12 +176,25 @@ namespace hf
                                 tempLong &= 0x7FFFF;
                                 _ppgWindow.push_back(tempLong);
 
-                                // Serial.print(_ppgWindow.back());
-                                // Serial.println(',');
+                                float x, y, z, x1, y1, z1;
+                                IMU.readAcceleration(x, y, z);
+                                IMU.readGyroscope(x1, y1, z1);
+                                
+                                std::string tmpString = std::to_string(x) + ";" + std::to_string(y) + ";" + std::to_string(z);
+                                Serial.print(_ppgWindow.back());
+                                Serial.println(',');
+                                // Accelerometer data
+                                Serial.print(tmpString.c_str());
+                                Serial.println(',');
+
+                                tmpString = std::to_string(x1) + ";" + std::to_string(y1) + ";" + std::to_string(z1);
+                                // Gyro data
+                                Serial.print(tmpString.c_str());
+                                Serial.println(',');
 
                                 if(_ppgWindow.size() >= WINDOW_SIZE) {
                                     // _bpmWiFi.getTest();
-                                    _bpmWiFi.txWindow(_ppgWindow);
+                                    // _bpmWiFi.txWindow(_ppgWindow);
                                     delay(10);
                                     _ppgWindow.clear();
                                 }

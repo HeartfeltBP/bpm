@@ -18,6 +18,9 @@ WiFiClient cl;
 
 void setup()
 {
+    IMU.begin();
+    Serial.println(IMU.gyroscopeSampleRate());
+    Serial.println(IMU.accelerationSampleRate());
     Wire.begin();
     Wire.setClock(400000);
     // set Baud rate
