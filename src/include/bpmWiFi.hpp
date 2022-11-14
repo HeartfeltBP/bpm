@@ -92,6 +92,7 @@ namespace hf
                 } else { return -1; }
             }
 
+            // make vector->array copying a utility function so it could be run independantly from WiFi or BLE
             void txWindow(std::vector<uint32_t> ppgWindow) {
                 if (WiFi.status() != WL_CONNECTED || !_client.status()) {retryWiFi();}
 
@@ -105,7 +106,7 @@ namespace hf
                 _http.post(jsonReciever.c_str());
                 _http.sendHeader("User-Agent", "Arduino/1.0");
                 _http.sendHeader("Content-Type", "application/json");
-                // TODO: figure out how tf Content-length is calculated?
+                // TODO: figure out how tf Content-length is calculated? <- len of string of transmission i think
                 _http.sendHeader("Content-Length", 1281);
                 _http.sendHeader("Connection", "keep-alive");
                 _http.beginBody();

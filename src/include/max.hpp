@@ -4,14 +4,18 @@
 
 #include <ArduinoJson.hpp>
 #include <Wire.h>
+#include <Arduino_LSM6DS3.h>
 
 // #include <string>
 // #include <map>
 #include <array>
 #include <utility>
 #include <vector>
+
 #include "bpmWiFi.hpp"
-#include <Arduino_LSM6DS3.h>
+#include "bpmBl.hpp"
+
+
 
 #define WINDOW_SIZE 256
 #define FRAME_SIZE 64
@@ -38,6 +42,7 @@ namespace hf
             // std::map<byte, byte> _localRegi;
             std::vector<uint32_t> _ppgWindow;
             BpmWiFi _bpmWiFi;
+            BpmBleSerial ble;
 
 
         public:
@@ -195,6 +200,7 @@ namespace hf
                                 if(_ppgWindow.size() >= WINDOW_SIZE) {
                                     // _bpmWiFi.getTest();
                                     // _bpmWiFi.txWindow(_ppgWindow);
+                                    
                                     delay(10);
                                     _ppgWindow.clear();
                                 }

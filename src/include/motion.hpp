@@ -9,20 +9,21 @@ namespace hf
     class Accelerometer
     {
         protected:
-            float x, y, z;
-
+            float _x, _y, _z;
         public:
             Accelerometer( ) {
                 if(IMU.begin()) {
-                    Serial.println("IMU init Success");
+                    Serial.println("Acc: IMU init Success");
                     Serial.print("Sampling rate: "); Serial.println(IMU.accelerationSampleRate());
                 } else {
-                    Serial.println("IMU init Failed");
+                    Serial.println("Acc: IMU init Failed");
                 }
             }
 
-            float getPos() {
-
+            float* getPos() {
+                if(!IMU.accelerationAvailable()) return;
+                IMU.readAcceleration(_x, _y, _z);
+                return new float[3] {_x, _y, _z};
             }
         
     
@@ -32,20 +33,22 @@ namespace hf
     class Gyro
     {
         protected:
-            float x, y, z;
+            float _x, _y, _z;
 
         public:
             Gyro() {
                 if(IMU.begin()) {
-                    Serial.println("IMU init Success");
+                    Serial.println("Gyro: IMU init Success");
                     Serial.print("Sampling rate: "); Serial.println(IMU.gyroscopeSampleRate());
                 } else {
-                    Serial.println("IMU init Failed");
+                    Serial.println("Gyro: IMU init Failed");
                 }
             }
 
-            float getPos() {
-                
+            float* getPos() {
+                if(!IMU.gyroscopeAvailable()) return;
+                IMU.readAcceleration(_x, _y, _z);
+                return new float[3] {_x, _y, _z};
             }
 
             
