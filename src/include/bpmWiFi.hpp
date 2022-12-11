@@ -34,8 +34,6 @@ namespace hf
         byte _clStatus = 0;
 
         public:
-            // add .env or something for pass management (maybe just don't handle on arduino somehow?)
-            // maybe encrypt on external device, decrypt on arduino (just probably setup two way encryption in general)
 
             // place within try catch block
             BpmWiFi(std::string url = URL, std::string ssid = SSID, std::string password = PASS)
@@ -58,7 +56,7 @@ namespace hf
                         Serial.print(giveUp); Serial.println(" reconnect attempts left...");
                         Serial.print("WiFi status: "); Serial.println(_wlStatus);
                         _wlStatus = WiFi.begin(SSID, PASS);
-                        if(giveUp <= 0) {Serial.print("Giving up: setup failed"); return -1;}
+                        if(giveUp <= 0) { Serial.print("Giving up: setup failed"); return -1; }
                         giveUp--;
                         delay(1000);
                     }
