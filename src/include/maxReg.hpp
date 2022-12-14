@@ -4,6 +4,8 @@
 #include <Wire.h>
 #include <Arduino.h>
 
+#include "constants.hpp"
+
 class MaxReg {
 
     protected:
@@ -24,7 +26,7 @@ class MaxReg {
             // track register value with map
             // this->_localRegi.emplace(reg_pair(reg, value));
 
-            Wire.beginTransmission(this->_i2cAddress);
+            Wire.beginTransmission(I2C_ADDRESS);
             Wire.write(reg);
             Wire.write(value);
             Wire.endTransmission();
@@ -32,11 +34,11 @@ class MaxReg {
 
         byte read(byte reg)
         {
-            Wire.beginTransmission(this->_i2cAddress);
+            Wire.beginTransmission(I2C_ADDRESS);
             Wire.write(reg);
             Wire.endTransmission(false);
 
-            Wire.requestFrom(this->_i2cAddress, 1);
+            Wire.requestFrom(_i2cAddress, 1);
 
             int available = Wire.available();
             if(available > 0) 
@@ -78,11 +80,6 @@ class MaxReg {
             // // 0x14 = 'led range?' = led current (50 mA = 0x00)
             write(0x14, 0x00);
 
-        }
-
-        void setI2CAddress(int adress)
-        {
-            _i2cAddress = adress;
         }
 
 

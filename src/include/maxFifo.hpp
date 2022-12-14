@@ -10,6 +10,9 @@
 #include <vector>
 
 #include "maxReg.hpp"
+#include "bpmWiFi.hpp"
+
+#include "constants.hpp"
 
 namespace hf
 {
@@ -18,8 +21,6 @@ namespace hf
     {
 
         protected:
-            byte _i2cAddress;
-            int _windowLength;
             byte _numSlots;
 
             std::vector<uint32_t> _ppgWindow;
@@ -27,13 +28,14 @@ namespace hf
             //std::vector<uint32_t> _ecgWindow;
 
             MaxReg _reg;
+            BpmWiFi _bpmWiFi;
 
         public:
         
-            MaxFifo(byte numSlots = 1, byte i2cAddress = 0x5E, int windowLength = 256)
-            : _numSlots{numSlots}, _i2cAddress{i2cAddress}, _windowLength{windowLength}
+            MaxFifo(byte numSlots = 1)
+            : _numSlots{numSlots}
             { 
-                _reg = MaxReg(i2cAddress);  
+                _reg = MaxReg();  
             }
 
             void clear() 
@@ -47,6 +49,8 @@ namespace hf
             void config()
             {
                 _reg.config();
+                delay(100);
+                _bpmWiFi.initWiFi();
                 clear();
             }
 
@@ -67,74 +71,68 @@ namespace hf
                     longArr[0] = Wire.read();
 
                     // convert 4 bytes into long
-                    memcpy(&tempLong, longArr, 4);
+                    memcpy(&tempLong, longArr, sizeof(tempLong));
                     // std::copy(&tempLong, &tempLong + 4, longArr);
 
                     // zero all but 19 bits
                     tempLong &= 0x7FFFF;
-                    // _ppgWindow.push_back(tempLong);
+                    _ppgWindow.push_back(tempLong);
 
                     // Serial.print("PPG: ");
                     Serial.print(tempLong);
                     Serial.println(",");
                 }
-            } 
+            }
 
             void check() {
+
+                if(_ppgWindow.size() > WINDOW_LENGTH) {
+                    // _bpmWiFi.txWindow(_ppgWindow);
+                    _bpmWiFi.getTest();
+                    _ppgWindow.clear();
+                }
+
                 int fifoRange = range();
                 if (fifoRange != 0)
                 {
-                    // if we found data get
+                    // wrap fifo range
                     if(fifoRange < 0) fifoRange += 32;
 
                     // avail = num samples * num devices * bits per sample
                     int available = fifoRange * _numSlots * 3;
 
-                    Serial.print(available); Serial.print(" = "); Serial.print(fifoRange);
-                    Serial.print(" * "); Serial.println(_numSlots);
-
-                    Wire.beginTransmission(_i2cAddress);
+                    Wire.beginTransmission(I2C_ADDRESS);
                     Wire.write(7U); // queue bytes to fifo data 0x07
                     Wire.endTransmission();
 
                     while(available > 0)
                     {
                         int readBytes = available;
-
                         // i2c buffer len is 32 on Uno, 64 on Nano? - possibly not implemented in Wire lib
                         // so tempRem is limited by buffer len and there may be remaining bytes beyond
-                        //                                          bytes * slots
-                        if(readBytes > 32) readBytes = 32 - ( 32 % (3 * _numSlots) );
-
+                        //                                          bytes * slots <- add all these kinds of functions to util
+                        if(readBytes > 32) readBytes = ( 32 - ( 32 % (3 * _numSlots)) );
                         available -= readBytes;
 
-                        Wire.requestFrom(_i2cAddress, readBytes);
+                        Wire.requestFrom(I2C_ADDRESS, readBytes);
 
                         while(readBytes > 0) {
                             read(_numSlots);
-                            readBytes -= _numSlots;
-
-                            if(_ppgWindow.size() >= (std::size_t)_windowLength) {
-                                // _bpmWiFi.getTest();
-                                // because we might break and skip some samples?
-                                if(readBytes > 0) available += readBytes;
-                                break;
-                            }
+                            readBytes -= _numSlots * 3;
                         }
                     }
                 }
             }
 
-            byte getI2CAddress() 
+            // change this to return an array
+            std::vector<uint32_t> getWindow() 
             {
-                return _i2cAddress;
+                // std::array<uint32_t, 256> ret;
+                std::vector<uint32_t> ret = _ppgWindow;
+                _ppgWindow.clear();
+                return ret;
             }
 
-            void setI2CAddress(int address)
-            {
-                _i2cAddress = address;
-                _reg.setI2CAddress(address);
-            }
 
     };
 }

@@ -31,7 +31,6 @@ namespace hf
     {
 
         protected:
-            const byte _i2cAddress;
             // arduino::TwoWire _i2c;
             byte _numSlots;
 
@@ -43,10 +42,10 @@ namespace hf
 
         public:
         
-            BpmSensor(byte numSlots, byte i2cAddress = 0x5E)
-            : _numSlots{numSlots}, _i2cAddress{i2cAddress}
+            BpmSensor(byte numSlots)
+            : _numSlots{numSlots}
             {
-                _fifo = MaxFifo(numSlots, i2cAddress);
+                _fifo = MaxFifo(numSlots);
             }
 
             int init() {
@@ -61,7 +60,11 @@ namespace hf
                 _fifo.check();
             }
 
+            std::vector<uint32_t> getWindow() {
+                return _fifo.getWindow();
+            }
+
     };
 }
 
-#endif // HF_MAX
+#endif
