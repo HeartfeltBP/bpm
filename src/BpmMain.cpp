@@ -36,5 +36,6 @@ void setup()
 
 void loop()
 {
-    bpmSensor.sampleSensor();
+    bpmSensor.sample();
+    delay(100);
 }

@@ -47,6 +47,7 @@ namespace hf
         public:
         
             BpmSensor(byte numSlots, byte i2cAddress = 0x5E)
+            : _numSlots{numSlots}
             {
 
             }
@@ -124,10 +125,10 @@ namespace hf
                 // _bpmWiFi.initWiFi(SSID, PASS, URL);
             }
 
-            void sampleSensor()
+            void sample()
             {
                 // unsigned long start = millis();
-                check();
+                fifo_check();
             }
 
             void fifo_clear() 
@@ -144,7 +145,7 @@ namespace hf
                 return writePtr - readPtr;
             }
 
-            void read(int numSlots) {
+            void fifo_read(int numSlots) {
                 byte longArr[_longBytes];
                 uint32_t tempLong;
 
@@ -167,15 +168,19 @@ namespace hf
                 }
             } 
 
-            void check() {
+            void fifo_check() {
                 int fifoRange = fifo_range();
-                if (fifoRange != 0)
-                {
+                Serial.println("");
+                if (fifoRange != 0) {
                     // if we found data get
                     if(fifoRange < 0) fifoRange += 32;
 
                     // avail = num samples * num devices * bits per sample
                     int available = fifoRange * _numSlots * 3;
+
+                    
+                    Serial.print(available); Serial.print(" = "); Serial.print(fifoRange);
+                    Serial.print(" * "); Serial.println(_numSlots);
 
                     Wire.beginTransmission(_i2cAddress);
                     Wire.write(7U); // queue bytes to fifo data 0x07
@@ -183,19 +188,22 @@ namespace hf
 
                     while(available > 0)
                     {
-                        int readBytes = available;
 
+                        Serial.println("BUNGA1");
+                        Serial.println(fifoRange);
+                        Serial.println(available);
+                        Serial.println("BUNGA4");
+                        int readBytes = available;
                         // i2c buffer len is 32 on Uno, 64 on Nano? - possibly not implemented in Wire lib
                         // so tempRem is limited by buffer len and there may be remaining bytes beyond
                         //                                          bytes * slots
                         if(readBytes > 32) readBytes = 32 - ( 32 % (3 * _numSlots) );
-
                         available -= readBytes;
 
                         Wire.requestFrom(_i2cAddress, readBytes);
 
                         while(readBytes > 0) {
-                            read(_numSlots);
+                            fifo_read(_numSlots);
                             readBytes -= _numSlots;
 
                             // if(_ppgWindow.size() >= (std::size_t)_windowLength) {
