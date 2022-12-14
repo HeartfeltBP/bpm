@@ -1,0 +1,2 @@
+#define I2C_ADDRESS 94
+#define WINDOW_LENGTH 256
