@@ -12,9 +12,8 @@
 #include <vector>
 
 #include "bpmWiFi.hpp"
-// #include "bpmBl.hpp"
+#include "bpmBl.hpp"
 #include "maxFifo.hpp"
-// #include "maxReg.hpp"
 
 #define WINDOW_SIZE 256
 #define FRAME_SIZE 64
@@ -31,12 +30,7 @@ namespace hf
     {
 
         protected:
-            // arduino::TwoWire _i2c;
             byte _numSlots;
-
-            // probably use global wifi ble and reg
-            BpmWiFi _bpmWiFi;
-            // BpmBleSerial ble;
 
             MaxFifo _fifo;
 
@@ -50,8 +44,6 @@ namespace hf
 
             int init() {
                 _fifo.config();
-
-                // _bpmWiFi.initWiFi(SSID, PASS, URL);
             }
 
             void sample()

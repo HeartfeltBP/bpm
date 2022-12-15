@@ -14,6 +14,9 @@
 
 #include "constants.hpp"
 
+#include "utils.hpp"
+#include ".env.h"
+
 namespace hf
 {
 
@@ -29,13 +32,14 @@ namespace hf
 
             MaxReg _reg;
             BpmWiFi _bpmWiFi;
+            // BpmBleSerial _bpmBle;
 
         public:
         
             MaxFifo(byte numSlots = 1)
             : _numSlots{numSlots}
             { 
-                _reg = MaxReg();  
+                _reg = MaxReg();
             }
 
             void clear() 
@@ -86,11 +90,11 @@ namespace hf
 
             void check() {
 
-                if(_ppgWindow.size() > WINDOW_LENGTH) {
-                    // _bpmWiFi.txWindow(_ppgWindow);
-                    _bpmWiFi.getTest();
-                    _ppgWindow.clear();
-                }
+                // if(_ppgWindow.size() > WINDOW_LENGTH) {
+                //     // _bpmWiFi.txWindow(_ppgWindow);
+                //     _bpmWiFi.getTest();
+                //     _ppgWindow.clear();
+                // }
 
                 int fifoRange = range();
                 if (fifoRange != 0)
@@ -117,8 +121,18 @@ namespace hf
                         Wire.requestFrom(I2C_ADDRESS, readBytes);
 
                         while(readBytes > 0) {
+                            Serial.println("_BUNGA_BUNGA[0]");
                             read(_numSlots);
                             readBytes -= _numSlots * 3;
+
+                            if(_ppgWindow.size() > WINDOW_LENGTH) {
+                                Serial.println("_BUNGA_BUNGA[1]");
+                                _bpmWiFi.txWindow(_ppgWindow);
+                                _ppgWindow.clear();
+                                Serial.println("_BUNGA_BUNGA[2]");
+                                Serial.println(freeRam());
+                                // _bpmWiFi.getTest();
+                            }
                         }
                     }
                 }

@@ -2,32 +2,23 @@
 #define HF_BPM_STRESS
 
 #include <Arduino.h>
+#include "bpmSensor.hpp"
+#include "utils.hpp"
 
 namespace hf
 {
     class StressTest
     {
         protected:
-            // this is dumb
-            bool _simple,
-             _moderate,
-             _intense,
-             _fp_simple,
-             _fp_intense;
 
         public:
-            StressTest(bool simple, bool moderate, bool intense, bool fp_simple, bool fp_intense)
-            : _simple{simple}, _intense{intense}, _fp_simple{fp_simple}, _fp_intense{fp_intense}{}
-
-            void begin()
-            {
-                // case
-            }
+            StressTest()
+            {}
 
             /* ## basic math ## */
 
             // add param for array of certain vals
-            void add_i(int iter, int delay)
+            void add_i(int iter, int delayVal)
             {
                 for(int i = 0; i < iter; i++)
                 {
@@ -35,7 +26,7 @@ namespace hf
                 }
             }
 
-            void mult_i(int iter, int delay)
+            void mult_i(int iter, int delayVal)
             {
                 for(int i = 0; i < iter; i++)
                 {
@@ -43,7 +34,7 @@ namespace hf
                 }
             }
 
-            void div_i(int iter, int delay)
+            void div_i(int iter, int delayVal)
             {
                 for(int i = 0; i < iter; i++)
                 {
@@ -51,20 +42,72 @@ namespace hf
                 }
             }
 
-            int basic()
-            {
-                add_i(10000, 2);
-                delay(20);
-                // mult_i()
-            }
-
             /* ## bpm tests ## */
 
-            void read_sensor() {
+            void basic() 
+            {
+                Serial.println("Creating Sensor Object");
+                hf::BpmSensor sensorObject = hf::BpmSensor(1);
+                Serial.println("Delaying for 10 seconds");
+                delay(10000);
+
+                Serial.println("Adding (iter sim)");
+                add_i(12000, 0);
+                Serial.println("Multiplying");
+                mult_i(256, 0);
+                Serial.println("Adding w. 1ms delay");
+                add_i(256, 1);
+
+                Serial.println("Delaying for 10 seconds");
+                delay(10000);
+
+                Serial.println("Initializing sensor");
+                sensorObject.init();
+
+                Serial.println("Delaying for 10 seconds");
+                delay(10000);
+                
+                Serial.println("Entering read loop for 10,000 iterations");
+                for(int i = 0; i < 10000; i++) 
+                {
+                    sensorObject.sample();
+                }
+
 
             }
 
-            void transmit_vect() {
+            void intense() 
+            {
+                Serial.println("Creating Sensor Object");
+                hf::BpmSensor sensorObject = hf::BpmSensor(1);
+                Serial.println("Delaying for 10 seconds");
+                delay(10000);
+
+                Serial.println("Adding (iter sim)");
+                add_i(12000, 0);
+                Serial.println("Multiplying");
+                mult_i(256, 0);
+                mult_i(256, 0);
+                Serial.println("Adding w. 1ms delay");
+                add_i(256, 0);
+                Serial.println("Sividing");
+                div_i(256, 0);
+
+                Serial.println("Delaying for 10 seconds");
+                delay(10000);
+
+                Serial.println("Initializing sensor");
+                sensorObject.init();
+
+                Serial.println("Delaying for 10 seconds");
+                delay(10000);
+                
+                Serial.println("Entering read loop for 10,000 iterations");
+                for(int i = 0; i < 10000; i++) 
+                {
+                    sensorObject.sample();
+                }
+
 
             }
 
@@ -72,8 +115,8 @@ namespace hf
 
     
 
-    }
-};
+    };
+}
 
 
 #endif

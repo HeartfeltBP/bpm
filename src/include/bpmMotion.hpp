@@ -10,6 +10,7 @@ namespace hf
     {
         protected:
             float _x, _y, _z;
+            
         public:
             Accelerometer( ) {
                 if(IMU.begin()) {

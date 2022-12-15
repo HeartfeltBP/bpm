@@ -1,0 +1,2 @@
+# The Heartfelt Blood Pressure Monitor (BPM)
+This repository has two components, clients for configuring and testing the Arduino, and the MAX86150 sensor firmware. This project uses the PlatformIO toolset to compile and upload the firmware.
