@@ -9,5 +9,12 @@ int freeRam()
     return &top - reinterpret_cast<char*>(sbrk(0));
 }
 
+namespace hf 
+{
+    void wait() {
+
+    }
+}
+
 
 #endif

@@ -13,6 +13,8 @@
 
 #include ".env.h" // WiFi credentials
 
+// TODO: for some reason reading http response bodies causes program to hang indefinetly - fix
+
 namespace hf
 {
     static const std::string apiEndpoints[2] = {

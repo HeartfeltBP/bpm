@@ -13,7 +13,7 @@
 
 #include "bpmWiFi.hpp"
 #include "bpmBl.hpp"
-#include "maxFifo.hpp"
+#include "bpmMax.hpp"
 
 #define WINDOW_SIZE 256
 #define FRAME_SIZE 64
@@ -49,7 +49,7 @@ namespace hf
             void sample()
             {
                 // unsigned long start = millis();
-                _fifo.check();
+                _fifo.sample();
             }
 
             std::vector<uint32_t> getWindow() {

@@ -75,7 +75,7 @@
                 ]
             },
             "defines": [
-                "PLATFORMIO=60105",
+                "PLATFORMIO=60106",
                 "ARDUINO_SAMD_NANO_33_IOT",
                 "CRYSTALLESS",
                 "__SAMD21G18A__",
