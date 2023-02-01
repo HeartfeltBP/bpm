@@ -52,10 +52,6 @@ namespace hf
                 _fifo.sample();
             }
 
-            std::vector<uint32_t> getWindow() {
-                return _fifo.getWindow();
-            }
-
     };
 }
 

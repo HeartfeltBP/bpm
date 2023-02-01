@@ -65,10 +65,14 @@ namespace hf
             write(0x0D, 0x04);
             write(0x08, 0x7F);
 
-            // sl1
-            write(9U, 0x01);
-            // sl2
-            write(10U, 0x09);
+            // // sl1
+            // write(9U, 0x01);
+            // // sl2
+            // write(9U, 0x09);
+            // both slots (1001 - 0001)
+            write(9U, 0x91);
+            // sl3
+            write(10U, 0x02);
 
             // PPG config (protocentral 0xD1 for Config1, maxim 0xD3) 0xD7 us: adc range, sample rate=200/s, led pulse width
             write(14U, 0xD7);
@@ -79,10 +83,10 @@ namespace hf
             write(17U, 0xFF);
             write(18U, 0xFF);
 
-            // // set ECG sampling rate = 200Hz
-            // writeRegister(ECG_CONFIG1, byte(0x03));
-            // // set ECG IA gain: 9.5; PGA gain: 8 (idk what this means)
-            // writeRegister(ECG_CONFIG3, byte(0x0D));
+            // set ECG sampling rate = 200Hz
+            write(0x3C, 0x03);
+            // set ECG IA gain: 9.5; PGA gain: 8 (idk what this means)
+            write(0x3E, 0x0D);
 
             // // 0x14 = 'led range?' = led current (50 mA = 0x00)
             write(0x14, 0x00);
@@ -95,8 +99,8 @@ namespace hf
     protected:
         byte _numSlots;
 
-        std::vector<uint32_t> _ppgWindow;
-        std::vector<uint32_t> _ppgWindowB;
+        std::vector<uint32_t> _ppgWindow0;
+        std::vector<uint32_t> _ppgWindow1;
         std::vector<uint32_t> _ecgWindow;
 
         MaxReg _reg;
@@ -130,8 +134,26 @@ namespace hf
             return writePtr - readPtr;
         }
 
+        uint32_t save(int bitMask)
+        {
+            
+            byte longArr[4];
+            uint32_t tempLong;
+
+            longArr[3] = 0;
+            longArr[2] = Wire.read();
+            longArr[1] = Wire.read();
+            longArr[0] = Wire.read();
+
+            memcpy(&tempLong, longArr, sizeof(tempLong));
+            // std::copy(&tempLong, &tempLong + sizeof(tempLong), &longArr);
+
+            return tempLong &= bitMask;
+        }
+
         uint32_t save()
         {
+            
             byte longArr[4];
             uint32_t tempLong;
 
@@ -150,28 +172,25 @@ namespace hf
         {
             uint32_t tempLong;
 
+            // fallthrough switch statement to read up to 3 slots atm
             switch(_numSlots) {
+                // EMPTY FOR NOW
                 case 4:
+                    break;
+                // PPG_SLOT1 = 3
+                case PPG_SLOT1:
+                    tempLong = save(0x7FFFF);
+                    _ppgWindow1.push_back(tempLong);
+                // ECG_SLOT = 2
+                case ECG_SLOT:
                     tempLong = save();
-                    tempLong &= 0x7FFFF;
-                    _ppgWindow.push_back(tempLong);
-                case 3:
-                    tempLong = save();
-                    tempLong &= 0x7FFFF;
-                    _ppgWindow.push_back(tempLong);
-                case 2:
-                    tempLong = save();
-                    tempLong &= 0x7FFFF;
-                    _ppgWindow.push_back(tempLong);
-                case 1:
-                    tempLong = save();
-                    tempLong &= 0x7FFFF;
-                    _ppgWindow.push_back(tempLong);
+                    _ecgWindow.push_back(tempLong);
+                // PPG_SLOT0 = 1
+                case PPG_SLOT0:
+                    tempLong = save(0x7FFFF);
+                    _ppgWindow0.push_back(tempLong);
                     break;
                 default:
-                    tempLong = save();
-                    tempLong &= 0x7FFFF;
-                    _ppgWindow.push_back(tempLong);
                     break;
             }
 
@@ -211,23 +230,31 @@ namespace hf
                         read();
                         readBytes -= _numSlots * 3;
 
-                        if (_ppgWindow.size() > WINDOW_LENGTH)
+                        if (_ppgWindow0.size() > WINDOW_LENGTH)
                         {
-                            _ppgWindow.clear();
-
+                            // data notification state
+                            _ppgWindow0.clear();
+                        }
+                        if (_ppgWindow1.size() > WINDOW_LENGTH)
+                        {
+                            // data notification state
+                            _ppgWindow1.clear();
+                        }
+                        if (_ecgWindow.size() > WINDOW_LENGTH)
+                        {
+                            // data notification state
+                            for (auto &&i : _ecgWindow)
+                            {
+                                delay(100);
+                                Serial.print(i);
+                                Serial.println(", ");
+                            }
+                            _ecgWindow.clear();
+                            
                         }
                     }
                 }
             }
-        }
-
-    public:
-        std::vector<uint32_t> getWindow()
-        {
-            // std::array<uint32_t, 256> ret;
-            std::vector<uint32_t> ret = _ppgWindow;
-            _ppgWindow.clear();
-            return ret;
         }
     };
 }
