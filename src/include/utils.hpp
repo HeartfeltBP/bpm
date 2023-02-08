@@ -3,7 +3,7 @@
 
 extern "C" char* sbrk(int incr);
 
-int freeRam()
+int getFreeRam()
 {
     char top;
     return &top - reinterpret_cast<char*>(sbrk(0));

@@ -13,6 +13,8 @@
 
 #include "constants.hpp"
 
+#include "bpmWiFi.hpp"
+
 
 namespace hf
 {
@@ -84,7 +86,7 @@ namespace hf
             // write(9U, 0x06);
             /* MAXIM VALS */
             write(9U, 0x21);
-            // write(10U, 0x09);
+            write(10U, 0x09);
 
             // PPG config (protocentral 0xD1 for Config1, maxim 0xD3) 0xD7 us: adc range, sample rate=200/s, led pulse width
             write(14U, 0xD7);
@@ -98,20 +100,20 @@ namespace hf
 
 
 
-            // // set ECG sampling rate = 200Hz
-            // write(0x3C, 0x03);
-            // // set ECG IA gain: 9.5; PGA gain: 8 (idk what this means)
-            // write(0x3E, 0x0D);
+            // set ECG sampling rate = 200Hz
+            write(0x3C, 0x03);
+            // set ECG IA gain: 9.5; PGA gain: 8 (idk what this means)
+            write(0x3E, 0x0D);
 
             // // 0x14 = 'led range?' = led current (50 mA = 0x00)
             write(0x14, 0x00);
 
             // AFE
-            // write(0xFF, 0x54);
-            // write(0xFF, 0x4D);
-            // write(0xCE, 0x0A);
-            // write(0xCF, 0x18);
-            // write(0xFF, 0x00);
+            write(0xFF, 0x54);
+            write(0xFF, 0x4D);
+            write(0xCE, 0x0A);
+            write(0xCF, 0x18);
+            write(0xFF, 0x00);
         }
     };
 
@@ -121,6 +123,8 @@ namespace hf
 
     protected:
         byte _numSlots;
+
+        hf::BpmWiFi _bpmWifi;
 
         std::vector<uint32_t> _ppgWindow0;
         std::vector<uint32_t> _ppgWindow1;
@@ -146,6 +150,8 @@ namespace hf
         void config()
         {
             _reg.config();
+            _bpmWifi.initWiFi();
+
             // delay(100);
             clear();
         }
@@ -198,19 +204,19 @@ namespace hf
             // slot 1 = ppg, slot 2 = ppg, slot 3 = ecg
             if (_numSlots >= 1) {
                 uint32_t tempLong = savePpg();
-                Serial.print(tempLong);
-                Serial.println(",");
-                //_ppgWindow0.push_back(tempLong);
+                // Serial.print(tempLong);
+                // Serial.println(",");
+                _ppgWindow0.push_back(tempLong);
 
                 if (_numSlots >= 2) {
                     tempLong = savePpg();
-                    // _ppgWindow1.push_back(tempLong);
+                    _ppgWindow1.push_back(tempLong);
 
                     if (_numSlots >= 3) {
                         int32_t tempLongSigned = saveEcg();
-                        // Serial.print(tempLongSigned);
-                        // Serial.println(",");
-
+                        Serial.print(tempLongSigned);
+                        Serial.println(",");
+                        _ecgWindow.push_back(tempLong);
                             // if (_numSlots >= 4) {
                             //     // not implemented
                             // }
@@ -233,6 +239,7 @@ namespace hf
                 // avail = num samples * num devices * bits per sample
                 int available = fifoRange * _numSlots * 3;
 
+                // reimplement reg map
                 Wire.beginTransmission(I2C_ADDRESS);
                 Wire.write(7U); // queue bytes to fifo data 0x07
                 Wire.endTransmission();
@@ -254,27 +261,28 @@ namespace hf
                         read();
                         readBytes -= _numSlots * 3;
 
-                        // if (_ppgWindow0.size() > WINDOW_LENGTH)
-                        // {
-                        //     // data notification state
-                        //     _ppgWindow0.clear();
-                        // }
-                        // if (_ppgWindow1.size() > WINDOW_LENGTH)
-                        // {
-                        //     // data notification state
-                        //     _ppgWindow1.clear();
-                        // }
-                        // if (_ecgWindow.size() > WINDOW_LENGTH)
-                        // {
-                        //     // // data notification state
-                        //     // for (auto &&i : _ecgWindow)
-                        //     // {
-                        //     //     Serial.print(i);
-                        //     //     Serial.println(", ");
-                        //     // }
-                        //     _ecgWindow.clear();
+                        if (_ppgWindow0.size() > WINDOW_LENGTH)
+                        {
+                            // data notification state
+                            _ppgWindow0.clear();
+                        }
+                        if (_ppgWindow1.size() > WINDOW_LENGTH)
+                        {
+                            // data notification state
+                            _ppgWindow1.clear();
+                        }
+                        if (_ecgWindow.size() > WINDOW_LENGTH)
+                        {
+                            // // data notification state
+                            // for (auto &&i : _ecgWindow)
+                            // {
+                            //     Serial.print(i);
+                            //     Serial.println(", ");
+                            // }
+                            _bpmWifi.txWindow(_ecgWindow);
+                            _ecgWindow.clear();
                             
-                        // }
+                        }
                     }
                 }
             }
