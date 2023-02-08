@@ -9,7 +9,6 @@
 // max https://datasheets.maximintegrated.com/en/ds/MAX86150.pdf
 
 hf::BpmSensor bpmSensor = hf::BpmSensor(3);
-unsigned long curTime;
 
 // hf::BpmWiFi bpmWiFi;
 
@@ -29,8 +28,6 @@ void setup()
     
     Serial.println("Setup Complete");
     delay(100);
-
-    curTime = millis();
 }
 
 void loop()
