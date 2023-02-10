@@ -120,7 +120,7 @@ namespace hf
 
         // make vector->array copying a utility function so it could be run independantly from WiFi or BLE
         // also make this just take an array -> copying the vector over here is prob not needed
-        void txWindow(std::vector<uint32_t> ppgWindow)
+        void txWindow(std::vector<int> ppgWindow, std::string type)
         {
             if (WiFi.status() != WL_CONNECTED || !_client.status())
             {
@@ -141,6 +141,8 @@ namespace hf
             _http->sendHeader("Content-Type", "application/json");
             _http->connectionKeepAlive();
             _http->beginBody();
+            ArduinoJson::JsonObject nested = ppgJson.createNestedObject();
+            nested["type"] = type;
             ArduinoJson::serializeJson(ppgJson, *_http);
             // output JSON to serial as well - diagnostic
             ArduinoJson::serializeJson(ppgJson, Serial);

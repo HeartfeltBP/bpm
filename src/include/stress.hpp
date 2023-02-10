@@ -18,29 +18,29 @@ namespace hf
             /* ## basic math ## */
 
             // add param for array of certain vals
-            void add_i(int iter, int delayVal)
-            {
-                for(int i = 0; i < iter; i++)
-                {
-                    int temp = i + iter;
-                }
-            }
+            // void add_i(int iter, int delayVal)
+            // {
+            //     for(int i = 0; i < iter; i++)
+            //     {
+            //         int temp = i + iter;
+            //     }
+            // }
 
-            void mult_i(int iter, int delayVal)
-            {
-                for(int i = 0; i < iter; i++)
-                {
-                    int temp = i * i;
-                }
-            }
+            // void mult_i(int iter, int delayVal)
+            // {
+            //     for(int i = 0; i < iter; i++)
+            //     {
+            //         int temp = i * i;
+            //     }
+            // }
 
-            void div_i(int iter, int delayVal)
-            {
-                for(int i = 0; i < iter; i++)
-                {
-                    int temp = i / 2;
-                }
-            }
+            // void div_i(int iter, int delayVal)
+            // {
+            //     for(int i = 0; i < iter; i++)
+            //     {
+            //         int temp = i / 2;
+            //     }
+            // }
 
             /* ## bpm tests ## */
 
