@@ -17,16 +17,16 @@ void setup()
 {
     bpmWiFi = new hf::BpmWiFi(SSID, PASS);
     bpmWiFi->initWiFi();
-    
-    windowHandler = new hf::WindowHandler(bpmWiFi, WINDOW_LENGTH);
+
+    windowHandler = new hf::WindowHandler(bpmWiFi, SLOT_COUNT,  WINDOW_LENGTH);
     bpmSensor = new hf::BpmSensor(bpmWiFi, windowHandler, SLOT_COUNT);
 
     Serial.begin(115200);
     Wire.begin();
     Wire.setClock(400000);
+    // Wire.setClock(100000);
     delay(10);
 
-    // bpmWiFi.initWiFi();
     bpmSensor->init();
 
     // loop until serial connection opens - diagnostic
@@ -40,11 +40,5 @@ void setup()
 void loop()
 {
     bpmSensor->sample();
-    // delay(1);
-    // Serial.print("FREE RAM: ");Serial.println(getFreeRam());
-    // if (millis() > curTime + 1000) {
-    //     bpmSensor.sample();
-    //     curTime += 1000;
-    // }
-    // delay(1000);
+    
 }

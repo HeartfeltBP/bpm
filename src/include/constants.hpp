@@ -1,3 +1,5 @@
+#define DISABLED -3
+
 #define I2C_ADDRESS 94
 #define WINDOW_LENGTH 256
 #define SLOT_COUNT 3

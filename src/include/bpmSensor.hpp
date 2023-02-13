@@ -73,14 +73,15 @@ namespace hf
             write(0x0D, 0x01);
             write(0x0D, 0x04);
             // write(0x08, 0x7F);
-            write(0x08, 0x7F);
+            write(0x08, 0x1F);
 
             /* slot 1 = ppg(ir), slot 2 = ppg(red), slot 3 = ecg */
             write(9U, 0x21); // slot 1 and 2
-            write(10U, 0x09);
+            // write(10U, 0x09);
 
-            // PPG config (protocentral 0xD1 for Config1, maxim 0xD3) 0xD7 us: adc range, sample rate=200/s, led pulse width
+            // // PPG config (protocentral 0xD1 for Config1, maxim 0xD3) 0xD7 us: adc range, sample rate=200/s, led pulse width
             write(14U, 0xD7);
+            // write(14U, 0xEB);
             // PPG sample averging
             write(15U, 0x00);
 
@@ -94,9 +95,10 @@ namespace hf
             if (_numSlots > 2)
             {
                 // ecg specific settings
+                write(10U, 0x09);
                 // set ECG sampling rate = 200Hz
                 write(0x3C, 0x03);
-                // set ECG IA gain: 9.5; PGA gain: 8 (idk what this means)
+                // // set ECG IA gain: 9.5; PGA gain: 8 (idk what this means)
                 write(0x3E, 0x0D);
 
                 // AFE config
@@ -105,10 +107,13 @@ namespace hf
                 write(0xCE, 0x0A);
                 write(0xCF, 0x18);
                 write(0xFF, 0x00);
+                Serial.println("ECG Configuration: Complete");
             }
 
             // // 0x14 = 'led range?' = led current (50 mA = 0x00)
             write(0x14, 0x00);
+            Serial.println("PPG Configuration: Complete");
+            Serial.println("FIFO Configuration: Complete");
         }
     };
 
@@ -116,7 +121,9 @@ namespace hf
     {
     protected:
         unsigned int _windowLength;
-        int _ppg0i = 0;
+        int _numSlots;
+
+        int _ppg0i = 0; // always enabled
         int _ppg1i = 0;
         int _ecgi  = 0;
 
@@ -127,41 +134,71 @@ namespace hf
         BpmWiFi *_wifi;
 
     public:
-        WindowHandler(BpmWiFi *wifi, unsigned int windowLength)
-            : _windowLength{windowLength}, _wifi{wifi} {}
-
-        template <typename T>
-        int updateWindow(std::array<T, 256> window, T sample, int i)
+        WindowHandler(BpmWiFi *wifi, int numSlots, unsigned int windowLength)
+            : _windowLength{windowLength}, _numSlots{numSlots}, _wifi{wifi} 
         {
-            window[i] = sample;
-            if(i+1 > WINDOW_LENGTH) {
-                // callback function?
-                i = 0;
-            }
-
-            return i += 1;
+            // switch(numSlots) {
+            //     case 3:
+            //         _ecgi = 0;
+            //     case 2:
+            //         _ppg1i = 0;
+            // }
         }
 
-        // PPG_SLOT0(IR) 1
-        // PPG_SLOT1(RED) 2
-        // ECG_SLOT  3
-        void pushSample(byte slot, int sample)
+        bool isEnabled(int slot)
         {
+            // will matter more once integrated into config
+            bool ret = (slot != DISABLED) ? true : false;
+            return ret;
+        }
+
+        void handleWindow(int slot, bool verbose)
+        {
+            
+        }
+    
+
+        template <typename sampleInt>
+        void pushSample(byte slot, sampleInt sample)
+        {
+            // sample = ~sample;
             switch (slot)
             {
             case PPG_SLOT0:
-                _ppg0i = updateWindow(_ppgWindow0, (unsigned)sample, _ppg0i);
+                _ppgWindow0[_ppg0i] = sample;
+                // Serial.print(sample);
+                // (_numSlots > 1) ? Serial.print(",") : Serial.println(",");
+                _ppg0i += 1;
+                if(_ppg0i >= WINDOW_LENGTH) {
+                    _ppgWindow0.fill(0);
+                    _ppg0i = 0;
+                }
                 break;
             case PPG_SLOT1:
-                _ppg1i = updateWindow(_ppgWindow1, (unsigned)sample, _ppg1i);
+                _ppgWindow1[_ppg1i] = sample;
+                // Serial.print(sample);
+                // (_numSlots > 2) ? Serial.print(",") : Serial.println(",");
+                Serial.println(",");
+                _ppg1i += 1;
+                if(_ppg1i >= WINDOW_LENGTH) {
+                    _ppgWindow1.fill(0);
+                    _ppg1i = 0;
+                }
                 break;
             case ECG_SLOT:
-                _ecgi = updateWindow(_ecgWindow,  sample, _ecgi);
+                _ecgWindow[_ecgi] = sample;
+                Serial.print(sample);
+                Serial.println(",");
+                _ecgi += 1;
+                if(_ecgi >= WINDOW_LENGTH) {
+                    _ecgWindow.fill(0);
+                    _ecgi = 0;
+                }
                 break;
             default:
+                Serial.println("What the fuck?");
                 break;
             }
-            // checkVects();
         }
     };
 
@@ -202,23 +239,25 @@ namespace hf
             return writePtr - readPtr;
         }
 
-        int burstRead(bool ecg = false)
+        template<typename sampleInt>
+        sampleInt burstRead(sampleInt slot)
         {
             byte longArr[4];
-            int temp;
+
+            bool ecg = (slot > 2) ? true : false;
 
             longArr[3] = 0;
             longArr[2] = Wire.read();
             longArr[1] = Wire.read();
             longArr[0] = Wire.read();
 
-            // uint32_t temp;
+            sampleInt temp;
             memcpy(&temp, longArr, sizeof(temp));
 
             if (ecg && temp & (1 << 17))
                 temp -= (1 << 18);
 
-            return temp = (ecg) ? temp & 0x3FFFF : temp & 0x7FFFF;
+            return temp = (ecg) ? (int)temp & 0x3FFFF : (unsigned int)temp & 0x7FFFF;
         }
 
         void read()
@@ -226,25 +265,18 @@ namespace hf
             // slot 1 = ppg, slot 2 = ppg, slot 3 = ecg
             if (_numSlots >= 1)
             {
-                int temp = burstRead();
-                Serial.print(temp);
-                Serial.print(",");
+                unsigned int temp = (unsigned int)burstRead((unsigned)PPG_SLOT0);
                 _windowHandler->pushSample(PPG_SLOT0, temp);
 
                 if (_numSlots >= 2)
                 {
-                    temp = burstRead();
-                    Serial.print(temp);
-                    Serial.print(",");
-                    // Serial.println(",");
+                    temp = (unsigned int)burstRead((unsigned)PPG_SLOT1);
                     _windowHandler->pushSample(PPG_SLOT1, temp);
 
                     if (_numSlots >= 3)
                     {
-                        unsigned int tempU = (unsigned)burstRead(true);
-                        Serial.print(tempU);
-                        Serial.println(",");
-                        _windowHandler->pushSample(ECG_SLOT, tempU);
+                        int temps = (int)burstRead(ECG_SLOT);
+                        _windowHandler->pushSample(ECG_SLOT, temps);
                     }
                 }
             }
@@ -274,7 +306,7 @@ namespace hf
                     
                     // i2c buffer len is 32 on Uno, 64 on Nano? - possibly not implemented in Wire lib
                     // so tempRem is limited by buffer len and there may be remaining bytes beyond
-                    // bytes * slots <- add all these kinds of functions to util
+                    // bytes * slots
                     if (readBytes > 32)
                         readBytes = (32 - (32 % (3 * _numSlots)));
                     available -= readBytes;

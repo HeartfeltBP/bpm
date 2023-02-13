@@ -40,7 +40,7 @@ namespace hf
                 return -1;
             }
             _wlStatus = WiFi.begin(SSID, PASS);
-            delay(500);
+            // delay(500);
 
             if (_wlStatus != WL_CONNECTED)
             {
@@ -53,7 +53,7 @@ namespace hf
                     Serial.print("WiFi status: ");
                     Serial.println(_wlStatus);
                     _wlStatus = WiFi.begin(SSID, PASS);
-                    delay(10000);
+                    delay(1000);
 
                     giveUp--;
                     if (giveUp <= 0)
@@ -85,7 +85,7 @@ namespace hf
                     Serial.print("Client status: ");
                     Serial.println(_clStatus);
                     _clStatus = _client.connect(URL, LPORT);
-                    delay(10000);
+                    delay(1000);
 
                     giveUp--;
                     if (giveUp <= 0)
@@ -118,9 +118,8 @@ namespace hf
             }
         }
 
-        // make vector->array copying a utility function so it could be run independantly from WiFi or BLE
-        // also make this just take an array -> copying the vector over here is prob not needed
-        void txWindow(std::vector<int> ppgWindow, std::string type)
+        template <typename T>
+        void txWindow(std::array<T, WINDOW_LENGTH> window, std::string type)
         {
             if (WiFi.status() != WL_CONNECTED || !_client.status())
             {
@@ -128,7 +127,7 @@ namespace hf
             }
 
             uint32_t txArr[256];
-            std::copy(ppgWindow.begin(), ppgWindow.end(), txArr);
+            std::copy(window.begin(), window.end(), txArr); // try using arr pointer instrad of copying
             ArduinoJson::StaticJsonDocument<256 * 16> ppgJson;
             ArduinoJson::copyArray(txArr, ppgJson.to<ArduinoJson::JsonArray>());
             // Serial.println((ppgJson.memoryUsage()/4)+800);
@@ -141,11 +140,13 @@ namespace hf
             _http->sendHeader("Content-Type", "application/json");
             _http->connectionKeepAlive();
             _http->beginBody();
+
             ArduinoJson::JsonObject nested = ppgJson.createNestedObject();
             nested["type"] = type;
             ArduinoJson::serializeJson(ppgJson, *_http);
             // output JSON to serial as well - diagnostic
             ArduinoJson::serializeJson(ppgJson, Serial);
+
             Serial.println();
             _http->endRequest();
 
@@ -153,6 +154,7 @@ namespace hf
             ppgJson.garbageCollect();
             delete &ppgJson;
 
+            // device freezes waiting for response for some reason
             // Serial.print(_http->responseStatusCode());
             // Serial.print(" ");
             // Serial.println(_http->responseBody());
