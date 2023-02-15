@@ -1,3 +1,8 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
 {
     "configurations": [
         {
@@ -32,7 +37,7 @@
                 "/home/kk/.platformio/packages/framework-arduino-samd/libraries/SNU/src",
                 "/home/kk/.platformio/packages/framework-arduino-samd/libraries/SSU/src",
                 "/home/kk/.platformio/packages/framework-arduino-samd/libraries/USBHost/src",
-                "${workspaceFolder}/.pio/libdeps/nano_33_iot/BluetoothSerial"
+                ""
             ],
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,

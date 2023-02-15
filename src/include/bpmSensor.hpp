@@ -166,8 +166,8 @@ namespace hf
             {
             case PPG_SLOT0:
                 _ppgWindow0[_ppg0i] = sample;
-                // Serial.print(sample);
-                // (_numSlots > 1) ? Serial.print(",") : Serial.println(",");
+                Serial.print(sample);
+                (_numSlots > 1) ? Serial.print(",") : Serial.println(",");
                 _ppg0i += 1;
                 if(_ppg0i >= WINDOW_LENGTH) {
                     _ppgWindow0.fill(0);
@@ -176,9 +176,9 @@ namespace hf
                 break;
             case PPG_SLOT1:
                 _ppgWindow1[_ppg1i] = sample;
-                // Serial.print(sample);
-                // (_numSlots > 2) ? Serial.print(",") : Serial.println(",");
-                Serial.println(",");
+                Serial.print(sample);
+                (_numSlots > 2) ? Serial.print(",") : Serial.println(",");
+                // Serial.println(",");
                 _ppg1i += 1;
                 if(_ppg1i >= WINDOW_LENGTH) {
                     _ppgWindow1.fill(0);

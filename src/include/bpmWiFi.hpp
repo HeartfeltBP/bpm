@@ -33,13 +33,17 @@ namespace hf
         byte _wlStatus = WL_IDLE_STATUS;
         byte _clStatus = 0;
 
-        int connectWiFi(std::string ssid, std::string password)
+        int connectWiFi(std::string ssid, std::string password, boolean enterprise = false)
         {
             if (WiFi.status() == WL_NO_MODULE)
             {
                 return -1;
             }
-            _wlStatus = WiFi.begin(SSID, PASS);
+            if(enterprise) {
+                _wlStatus = WiFi.beginEnterprise(SSID, USER, PASS);
+            } else {
+                _wlStatus = WiFi.begin(SSID, PASS);
+            }
             // delay(500);
 
             if (_wlStatus != WL_CONNECTED)
