@@ -1,42 +1,45 @@
-// #ifndef HF_BPM_BL
-// #define HF_BPM_BL
+#ifndef HF_BPM_BL
+#define HF_BPM_BL
 
-// #include <CommandParser.h>
-// #include <ArduinoBLE.h>
-// #include <ArduinoJson.hpp>
+#include <CommandParser.h>
+#include <ArduinoBLE.h>
+#include <ArduinoJson.hpp>
+#include <HardwareBLESerial.h>
 
-// #include <string>
-// #include <vector>
+#include <string>
+#include <vector>
 
-// namespace hf 
-// {
+#include <HardwareBLESerial.h>
 
-//     class BpmBleSerial {
+namespace hf
+{
 
-//         protected:
-//             // HardwareBLESerial &_bleSerial = HardwareBLESerial::getInstance();
-//             std::string _bleName;
+    class BpmBleSerial
+    {
 
-//         public:
-//             BpmBleSerial(std::string bleName = "bpm") 
-//             : _bleName{bleName} {
-//                 // if(!_bleSerial.beginAndSetupBLE(_bleName.c_str())) {
-//                 //     Serial.println("ERROR: failed to initialize Serial BLE");
-//                 // }
-//             }
+    protected:
+        HardwareBLESerial &_bleSerial = HardwareBLESerial::getInstance();
+        std::string _bleName;
 
-        
-//             void txWindow(std::vector<uint32_t> ppgWindow) {
-//                 uint32_t txArr[256];
-//                 std::copy(ppgWindow.begin(), ppgWindow.end(), txArr);
-//                 ArduinoJson::StaticJsonDocument<256 * 16> ppgJson;
-//                 ArduinoJson::copyArray(txArr, ppgJson.to<ArduinoJson::JsonArray>());
-//                 Serial.println(ppgJson.data().size());
+    public:
+        BpmBleSerial(std::string bleName = "bpm")
+            : _bleName{bleName}
+        {
+            if (!_bleSerial.beginAndSetupBLE(_bleName.c_str()))
+            {
+                Serial.println("ERROR: failed to initialize Serial BLE");
+            }
+        }
 
-//                 // ArduinoJson::serializeJson(ppgJson, _bleSerial);
-//                 // ArduinoJson::serializeJson(ppgJson, Serial);
-//             }
-//     };
-// }
+        void txWindow(std::vector<uint32_t> ppgWindow)
+        {
+            uint32_t txArr[256];
+            std::copy(ppgWindow.begin(), ppgWindow.end(), txArr);
+            ArduinoJson::StaticJsonDocument<256 * 16> ppgJson;
+            ArduinoJson::copyArray(txArr, ppgJson.to<ArduinoJson::JsonArray>());
+            Serial.println(ppgJson.data().size());
+        }
+    };
+}
 
-// #endif
+#endif

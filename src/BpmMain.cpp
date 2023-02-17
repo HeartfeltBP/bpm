@@ -1,23 +1,33 @@
 #include <Arduino.h>
 #include <Wire.h>
+#include <iostream>
 
 // #include "./include/bpmWiFi.hpp"
 #include "./include/bpmSensor.hpp"
 
 // max https://datasheets.maximintegrated.com/en/ds/MAX86150.pdf
 
-hf::BpmSensor bpmSensor = hf::BpmSensor(1);
+hf::WindowHandler *windowHandler;
+hf::BpmSensor *bpmSensor;
+hf::BpmWiFi *bpmWiFi;
+
 // hf::BpmWiFi bpmWiFi;
 
 void setup()
-{   
+{
+    bpmWiFi = new hf::BpmWiFi(SSID, PASS);
+    bpmWiFi->initWiFi();
+
+    windowHandler = new hf::WindowHandler(bpmWiFi, SLOT_COUNT,  WINDOW_LENGTH);
+    bpmSensor = new hf::BpmSensor(bpmWiFi, windowHandler, SLOT_COUNT);
+
     Serial.begin(115200);
     Wire.begin();
     Wire.setClock(400000);
+    // Wire.setClock(100000);
     delay(10);
 
-    // bpmWiFi.initWiFi();
-    bpmSensor.init();
+    bpmSensor->init();
 
     // loop until serial connection opens - diagnostic
     while (!Serial)
@@ -29,6 +39,6 @@ void setup()
 
 void loop()
 {
-    bpmSensor.sample();
-    // delay(1000);
+    bpmSensor->sample();
+    
 }
