@@ -3,7 +3,6 @@
 
 #include <Wire.h>
 #include <Arduino.h>
-#include <array>
 
 #include "constants.hpp"
 
@@ -22,9 +21,9 @@ namespace hf
 
     public:
         MaxReg(byte numSlots = 1, byte i2cAddress = 0x5E)
-            : _i2cAddress{i2cAddress}, _numSlots{numSlots} 
+            : _i2cAddress{i2cAddress}, _numSlots{numSlots}
         {
-                Serial.println(getFreeRam());   
+            Serial.println(getFreeRam());
         }
 
         void write(byte reg, byte value)
@@ -115,31 +114,35 @@ namespace hf
         }
     };
 
-   
     class FrameHandler
     {
     protected:
-
         byte _numSlots;
 
+        // i = current window sample count, j = current window in frame
         int _ppg0i = 0; // always enabled
+        int _ppg0j = 0;
+
         int _ppg1i = 0;
-        int _ecgi  = 0;
+        int _ppg1j = 0;
+
+        int _ecgi = 0;
+        int _ecgj = 0;
 
         // std::array<ppgInt, FRAME_LENGTH> PROGMEM *_ppgWindow0;
         // std::array<ppgInt, FRAME_LENGTH> PROGMEM *_ppgWindow1;
         // std::array<ecgInt, FRAME_LENGTH> PROGMEM *_ecgWindow;
-        ppgInt PROGMEM *_ppgWindow0;
-        ppgInt PROGMEM *_ppgWindow1;
-        ecgInt PROGMEM *_ecgWindow;
+        ppgInt PROGMEM *_ppgWindow0[FRAME_MULT];
+        ppgInt PROGMEM *_ppgWindow1[FRAME_MULT];
+        ecgInt PROGMEM *_ecgWindow[FRAME_MULT];
 
         BpmWiFi *_wifi;
 
     public:
         FrameHandler(BpmWiFi *wifi, byte numSlots)
-            : _numSlots{numSlots}, _wifi{wifi} 
+            : _numSlots{numSlots}, _wifi{wifi}
         {
-            
+
             //  if (_numSlots >= 1)
             // {
             //     _ppgWindow0 = new PROGMEM std::array<ppgInt, FRAME_LENGTH>;
@@ -155,21 +158,29 @@ namespace hf
             //     }
             // }
 
-             if (_numSlots >= 1)
+            if (_numSlots >= 1)
             {
-                _ppgWindow0 = new PROGMEM ppgInt[FRAME_LENGTH];
+                for (int i = 0; i < FRAME_MULT; i++)
+                {
+                    _ppgWindow0[i] = new PROGMEM ppgInt[WINDOW_LENGTH];
+                }
 
                 if (_numSlots >= 2)
                 {
-                    _ppgWindow1 = new PROGMEM ppgInt[FRAME_LENGTH];
+                    for (int i = 0; i < FRAME_MULT; i++)
+                    {
+                        _ppgWindow1[i] = new PROGMEM ppgInt[WINDOW_LENGTH];
+                    }
 
                     if (_numSlots >= 3)
                     {
-                        _ecgWindow = new PROGMEM ecgInt[FRAME_LENGTH];
+                        for (int i = 0; i < FRAME_MULT; i++)
+                        {
+                            _ecgWindow[i] = new PROGMEM ecgInt[WINDOW_LENGTH];
+                        }
                     }
                 }
             }
-            
         }
 
         bool isEnabled(int slot)
@@ -181,9 +192,7 @@ namespace hf
 
         void handleWindow(int slot, bool verbose)
         {
-            
         }
-    
 
         template <typename sampleInt>
         void pushSample(byte slot, sampleInt sample)
@@ -193,35 +202,53 @@ namespace hf
             {
             case PPG_SLOT0:
                 // _ppgWindow0->data()[_ppg0i] = sample;
-                _ppgWindow0[_ppg0i] = sample;
+                _ppgWindow0[_ppg0j][_ppg0i] = sample;
                 _ppg0i += 1;
-                if(_ppg0i >= FRAME_LENGTH) {
-                    if(_wifi) _wifi->txWindow(_ppgWindow0, PPG_SLOT0);
-                    // _wifi->getTest();
-                    // _ppgWindow0->fill(0);
+                if (_ppg0i >= WINDOW_LENGTH)
+                {
                     _ppg0i = 0;
+                    _ppg0j += 1;
+                    if(_ppg0j > FRAME_MULT) {
+                        for(int i = 0; i < FRAME_MULT; i++) {
+                            if (_wifi) 
+                                _wifi->txWindow(_ppgWindow0[i], PPG_SLOT0);
+                        }
+                        _ppg1j = 0;
+                    }
                 }
                 break;
             case PPG_SLOT1:
                 // _ppgWindow1->data()[_ppg1i] = sample;
-                _ppgWindow1[_ppg0i] = sample;
+                _ppgWindow1[_ppg0j][_ppg0i] = sample;
                 _ppg1i += 1;
-                if(_ppg1i >= FRAME_LENGTH) {
-                    if(_wifi) _wifi->txWindow(_ppgWindow1, PPG_SLOT1);
-                    // _wifi->getTest();
-                    // _ppgWindow1->fill(0);
+                if (_ppg1i >= WINDOW_LENGTH)
+                {
                     _ppg1i = 0;
+                    _ppg1j += 1;
+                    if(_ppg1j > WINDOW_LENGTH) {
+                        for(int i = 0; i < FRAME_MULT; i++) {
+                            if (_wifi) 
+                                _wifi->txWindow(_ppgWindow1[i], PPG_SLOT1);
+                        }
+                        _ppg1j = 0;
+                    }
                 }
                 break;
             case ECG_SLOT:
                 // _ecgWindow->data()[_ecgi] = sample;
-                _ecgWindow[_ecgi] = sample;
+                _ecgWindow[_ecgj][_ecgi] = sample;
                 _ecgi += 1;
-                if(_ecgi >= FRAME_LENGTH) {
-                    if(_wifi) _wifi->txWindow(_ecgWindow, ECG_SLOT);
-                    // _wifi->getTest();
-                    // _ecgWindow->fill(0);
+                if (_ecgi >= WINDOW_LENGTH)
+                {
                     _ecgi = 0;
+                    _ecgj += 1;
+                    if(_ecgj > FRAME_MULT) {
+                        for(int i = 0; i < FRAME_MULT; i++) {
+                            if (_wifi) 
+                                _wifi->txWindow(_ecgWindow[i], ECG_SLOT);
+                        }
+                        _ecgj = 0;
+                    }
                 }
                 break;
             default:
@@ -245,7 +272,6 @@ namespace hf
         MaxFifo(MaxReg *reg, FrameHandler *frameHandler, byte numSlots)
             : _numSlots{numSlots}, _reg{reg}, _windowHandler{frameHandler}
         {
-            Serial.println(getFreeRam());
         }
 
         void clear()
@@ -269,7 +295,7 @@ namespace hf
             return writePtr - readPtr;
         }
 
-        template<typename sampleInt>
+        template <typename sampleInt>
         sampleInt burstRead(sampleInt slot)
         {
             byte longArr[4];
@@ -336,7 +362,7 @@ namespace hf
                 while (available > 0)
                 {
                     byte readBytes = available;
-                    
+
                     // i2c buffer len is 32 on Uno, 64 on Nano? - possibly not implemented in Wire lib
                     // so tempRem is limited by buffer len and there may be remaining bytes beyond
                     // bytes * slots

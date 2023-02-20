@@ -3,7 +3,7 @@
 
 // #include "./include/bpmWiFi.hpp"
 #include "./include/bpmSensor.hpp"
-#include <Adafruit_SleepyDog.h>
+// #include <Adafruit_SleepyDog.h>
 
 // max https://datasheets.maximintegrated.com/en/ds/MAX86150.pdf
 
@@ -45,6 +45,7 @@ void setup()
 
 void loop()
 {
+    // TODO: see if we can get window collect -> frame transmission under 5ms
     printFreeRam(true);
     bpmSensor->sample();
     
