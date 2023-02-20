@@ -1,15 +1,12 @@
 #ifndef HF_BPM_BL
 #define HF_BPM_BL
 
-#include <CommandParser.h>
 #include <ArduinoBLE.h>
-#include <ArduinoJson.hpp>
-#include <HardwareBLESerial.h>
+
 
 #include <string>
 #include <vector>
 
-#include <HardwareBLESerial.h>
 
 namespace hf
 {
@@ -18,7 +15,6 @@ namespace hf
     {
 
     protected:
-        HardwareBLESerial &_bleSerial = HardwareBLESerial::getInstance();
         std::string _bleName;
 
     public:
@@ -35,8 +31,6 @@ namespace hf
         {
             uint32_t txArr[256];
             std::copy(ppgWindow.begin(), ppgWindow.end(), txArr);
-            ArduinoJson::StaticJsonDocument<256 * 16> ppgJson;
-            ArduinoJson::copyArray(txArr, ppgJson.to<ArduinoJson::JsonArray>());
             Serial.println(ppgJson.data().size());
         }
     };

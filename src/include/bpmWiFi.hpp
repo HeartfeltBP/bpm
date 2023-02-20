@@ -4,12 +4,11 @@
 #include <Arduino.h>
 
 #include <string>
-#include <vector>
 #include <array>
 
-#include <ArduinoJson.hpp>
 #include <WiFiNINA.h>
 #include <HttpClient.h>
+#include "./utils.hpp"
 
 #include ".env.h" // WiFi credentials
 
@@ -18,8 +17,9 @@
 namespace hf
 {
     static const std::string apiEndpoints[2] = {
-        "/api/rx/",
-        "/api/test/"};
+        "/api/rx",
+        "/api/test"
+    };
 
     static const std::string jsonReciever = apiEndpoints[0];
     static const std::string testEndpoint = apiEndpoints[1];
@@ -105,8 +105,7 @@ namespace hf
     public:
         // place within try catch block
         BpmWiFi(std::string url = URL, std::string ssid = SSID, std::string password = PASS)
-        {
-        }
+        {}
 
         int initWiFi(std::string ssid = SSID, std::string pass = PASS, std::string url = URL)
         {
@@ -123,45 +122,52 @@ namespace hf
         }
 
         template <typename T>
-        void txWindow(std::array<T, WINDOW_LENGTH> window, std::string type)
+        // std::array<T, FRAME_LENGTH>
+        void txWindow(T frame[], int type)
         {
             if (WiFi.status() != WL_CONNECTED || !_client.status())
             {
                 retryWiFi();
             }
 
-            uint32_t txArr[256];
-            std::copy(window.begin(), window.end(), txArr); // try using arr pointer instrad of copying
-            ArduinoJson::StaticJsonDocument<256 * 16> ppgJson;
-            ArduinoJson::copyArray(txArr, ppgJson.to<ArduinoJson::JsonArray>());
-            // Serial.println((ppgJson.memoryUsage()/4)+800);
+            Serial.println("FREE RAM: ");
+            Serial.println(getFreeRam());
+            Serial.println(); Serial.println(WiFi.status());
+            Serial.println(); Serial.println();
+
+            std::string postData;
+            switch(type) {
+                case PPG_SLOT0:
+                    postData.append("PPG0,,");
+                    break;
+                case PPG_SLOT1:
+                    postData.append("PPG1,,");
+                    break;
+                case ECG_SLOT:
+                    postData.append("ECG,,");
+                    break;
+            }
+
+
+            // prob best to calculate data structure length but for some reason
+            // sizeof(frame) / sizeof(T) do not work
+            for(int i = 0; i < FRAME_LENGTH; i++) {
+                postData.append(std::to_string(frame[i]));
+                postData.append(",");
+            }
 
             _http->beginRequest();
-            // _http.post(jsonReciever.c_str());
-            _http->post("/api/rx/");
-            _http->sendHeader("User-Agent", "Arduino/1.0");
-            _http->sendHeader("Content-Length", ArduinoJson::measureJson(ppgJson));
-            _http->sendHeader("Content-Type", "application/json");
+            _http->post(jsonReciever.c_str());
+            _http->sendHeader("User-Agent", "HF-BPM/0.1");
+            _http->sendHeader("Content-Length", postData.length());
+            _http->sendHeader("Content-Type", "text/csv");
             _http->connectionKeepAlive();
             _http->beginBody();
 
-            ArduinoJson::JsonObject nested = ppgJson.createNestedObject();
-            nested["type"] = type;
-            ArduinoJson::serializeJson(ppgJson, *_http);
-            // output JSON to serial as well - diagnostic
-            ArduinoJson::serializeJson(ppgJson, Serial);
+            Serial.println(postData.c_str());
+            _http->print(postData.c_str());
 
-            Serial.println();
             _http->endRequest();
-
-            ppgJson.clear();
-            ppgJson.garbageCollect();
-            delete &ppgJson;
-
-            // device freezes waiting for response for some reason
-            // Serial.print(_http->responseStatusCode());
-            // Serial.print(" ");
-            // Serial.println(_http->responseBody());
         }
 
         void getTest()
@@ -171,9 +177,8 @@ namespace hf
                 retryWiFi();
             }
             _http->get(testEndpoint.c_str());
-            // Serial.print(_http->responseStatusCode());
-            // Serial.print(" ");
-            // Serial.println(_http->responseBody());
+            Serial.print(_http->responseStatusCode());
+            Serial.println(_http->responseBody());
         }
 
         void retryWiFi()
