@@ -4,7 +4,7 @@
 #define DISABLED -3
 
 #define I2C_ADDRESS 94
-#define WINDOW_LENGTH 410
+#define WINDOW_LENGTH 5
 #define FRAME_MULT 10
 #define FRAME_LENGTH 410
 
