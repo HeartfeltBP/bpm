@@ -16,8 +16,8 @@ namespace hf
     {
 
     protected:
-        byte _i2cAddress;
-        byte _numSlots;
+        int _i2cAddress;
+        int _numSlots;
 
     public:
         MaxReg(byte numSlots = 1, byte i2cAddress = 0x5E)
@@ -72,8 +72,7 @@ namespace hf
             write(0x08, 0x1F);
 
             /* slot 1 = ppg(ir), slot 2 = ppg(red), slot 3 = ecg */
-            // write(9U, 0x21); // slot 1 and 2
-            write(9U, 0x02); // slot 1 and 2
+            write(9U, 0x21); // slot 1 and 2
             // write(10U, 0x09);
 
             // // PPG config (protocentral 0xD1 for Config1, maxim 0xD3) 0xD7 us: adc range, sample rate=200/s, led pulse width
@@ -119,22 +118,12 @@ namespace hf
     protected:
         byte _numSlots;
 
-        // i = current window sample count, j = current window in frame
-        int _ppg0i = 0; // always enabled
-        int _ppg0j = 0;
 
-        int _ppg1i = 0;
-        int _ppg1j = 0;
+        ppgInt *_ppgWindow0;
+        ppgInt *_ppgWindow1;
+        ecgInt *_ecgWindow;
 
-        int _ecgi = 0;
-        int _ecgj = 0;
-
-        // std::array<ppgInt, FRAME_LENGTH> PROGMEM *_ppgWindow0;
-        // std::array<ppgInt, FRAME_LENGTH> PROGMEM *_ppgWindow1;
-        // std::array<ecgInt, FRAME_LENGTH> PROGMEM *_ecgWindow;
-        ppgInt PROGMEM *_ppgWindow0[FRAME_MULT];
-        ppgInt PROGMEM *_ppgWindow1[FRAME_MULT];
-        ecgInt PROGMEM *_ecgWindow[FRAME_MULT];
+        int _ppg0i = 0, _ppg1i = 0, _ecgi = 0;
 
         BpmWiFi *_wifi;
 
@@ -143,44 +132,6 @@ namespace hf
             : _numSlots{numSlots}, _wifi{wifi}
         {
 
-            //  if (_numSlots >= 1)
-            // {
-            //     _ppgWindow0 = new PROGMEM std::array<ppgInt, FRAME_LENGTH>;
-
-            //     if (_numSlots >= 2)
-            //     {
-            //         _ppgWindow1 = new PROGMEM std::array<ppgInt, FRAME_LENGTH>;
-
-            //         if (_numSlots >= 3)
-            //         {
-            //             _ecgWindow = new PROGMEM std::array<ecgInt, FRAME_LENGTH>;
-            //         }
-            //     }
-            // }
-
-            if (_numSlots >= 1)
-            {
-                for (int i = 0; i < FRAME_MULT; i++)
-                {
-                    _ppgWindow0[i] = new PROGMEM ppgInt[WINDOW_LENGTH];
-                }
-
-                if (_numSlots >= 2)
-                {
-                    for (int i = 0; i < FRAME_MULT; i++)
-                    {
-                        _ppgWindow1[i] = new PROGMEM ppgInt[WINDOW_LENGTH];
-                    }
-
-                    if (_numSlots >= 3)
-                    {
-                        for (int i = 0; i < FRAME_MULT; i++)
-                        {
-                            _ecgWindow[i] = new PROGMEM ecgInt[WINDOW_LENGTH];
-                        }
-                    }
-                }
-            }
         }
 
         bool isEnabled(int slot)
@@ -197,58 +148,37 @@ namespace hf
         template <typename sampleInt>
         void pushSample(byte slot, sampleInt sample)
         {
-            // sample = ~sample;
             switch (slot)
             {
             case PPG_SLOT0:
-                // _ppgWindow0->data()[_ppg0i] = sample;
-                _ppgWindow0[_ppg0j][_ppg0i] = sample;
+                _ppgWindow0[_ppg0i] = sample;
+                Serial.print(sample);
+                (_numSlots > 1) ? Serial.print(",") : Serial.println(",");
                 _ppg0i += 1;
-                if (_ppg0i >= WINDOW_LENGTH)
-                {
+                if(_ppg0i >= WINDOW_LENGTH) {
+                    _ppgWindow0.fill(0);
                     _ppg0i = 0;
-                    _ppg0j += 1;
-                    if(_ppg0j > FRAME_MULT) {
-                        for(int i = 0; i < FRAME_MULT; i++) {
-                            if (_wifi) 
-                                _wifi->txWindow(_ppgWindow0[i], PPG_SLOT0);
-                        }
-                        _ppg1j = 0;
-                    }
                 }
                 break;
             case PPG_SLOT1:
-                // _ppgWindow1->data()[_ppg1i] = sample;
-                _ppgWindow1[_ppg0j][_ppg0i] = sample;
+                _ppgWindow1[_ppg1i] = sample;
+                Serial.print(sample);
+                (_numSlots > 2) ? Serial.print(",") : Serial.println(",");
+                // Serial.println(",");
                 _ppg1i += 1;
-                if (_ppg1i >= WINDOW_LENGTH)
-                {
+                if(_ppg1i >= WINDOW_LENGTH) {
+                    _ppgWindow1.fill(0);
                     _ppg1i = 0;
-                    _ppg1j += 1;
-                    if(_ppg1j > WINDOW_LENGTH) {
-                        for(int i = 0; i < FRAME_MULT; i++) {
-                            if (_wifi) 
-                                _wifi->txWindow(_ppgWindow1[i], PPG_SLOT1);
-                        }
-                        _ppg1j = 0;
-                    }
                 }
                 break;
             case ECG_SLOT:
-                // _ecgWindow->data()[_ecgi] = sample;
-                _ecgWindow[_ecgj][_ecgi] = sample;
+                _ecgWindow[_ecgi] = sample;
+                Serial.print(sample);
+                Serial.println(",");
                 _ecgi += 1;
-                if (_ecgi >= WINDOW_LENGTH)
-                {
+                if(_ecgi >= WINDOW_LENGTH) {
+                    _ecgWindow.fill(0);
                     _ecgi = 0;
-                    _ecgj += 1;
-                    if(_ecgj > FRAME_MULT) {
-                        for(int i = 0; i < FRAME_MULT; i++) {
-                            if (_wifi) 
-                                _wifi->txWindow(_ecgWindow[i], ECG_SLOT);
-                        }
-                        _ecgj = 0;
-                    }
                 }
                 break;
             default:
@@ -266,11 +196,11 @@ namespace hf
         byte _numSlots;
 
         MaxReg *_reg;
-        FrameHandler *_windowHandler;
+        FrameHandler *_frameHandler;
 
     public:
         MaxFifo(MaxReg *reg, FrameHandler *frameHandler, byte numSlots)
-            : _numSlots{numSlots}, _reg{reg}, _windowHandler{frameHandler}
+            : _numSlots{numSlots}, _reg{reg}, _frameHandler{frameHandler}
         {
         }
 
@@ -288,6 +218,10 @@ namespace hf
             clear();
         }
 
+        /**
+         * Gets number of available FIFO elements
+         * @returns range of available values
+        */
         int range()
         {
             byte readPtr = _reg->read(6U);
@@ -313,29 +247,26 @@ namespace hf
             if (ecg && temp & (1 << 17))
                 temp -= (1 << 18);
 
-            printFreeRam(true);
-
-            return temp = (ecg) ? (int)temp & 0x3FFFF : (unsigned int)temp & 0x7FFFF;
+            return temp = (ecg) ? (ecgInt)temp & 0x3FFFF : (ppgInt)temp & 0x7FFFF;
         }
 
         void read()
         {
-            printFreeRam(true);
             // slot 1 = ppg, slot 2 = ppg, slot 3 = ecg
             if (_numSlots >= 1)
             {
-                unsigned long int temp = (unsigned long int)burstRead(PPG_SLOT0);
-                _windowHandler->pushSample(PPG_SLOT0, temp);
+                ppgInt temp = (ppgInt)burstRead(PPG_SLOT0);
+                _frameHandler->pushSample(PPG_SLOT0, temp);
 
                 if (_numSlots >= 2)
                 {
-                    temp = (unsigned long int)burstRead(PPG_SLOT1);
-                    _windowHandler->pushSample(PPG_SLOT1, temp);
+                    temp = (ppgInt)burstRead(PPG_SLOT1);
+                    _frameHandler->pushSample(PPG_SLOT1, temp);
 
                     if (_numSlots >= 3)
                     {
-                        int temps = (long int)burstRead(ECG_SLOT);
-                        _windowHandler->pushSample(ECG_SLOT, temps);
+                        ecgInt temps = (ecgInt)burstRead(ECG_SLOT);
+                        _frameHandler->pushSample(ECG_SLOT, temps);
                     }
                 }
             }
@@ -343,7 +274,6 @@ namespace hf
 
         void sample()
         {
-            printFreeRam(true);
             byte fifoRange = range();
             if (fifoRange != 0)
             {
@@ -352,8 +282,8 @@ namespace hf
                     fifoRange += 32;
 
                 // available = num samples * num devices * bits per sample
-                byte available = fifoRange * _numSlots * 3;
-                printFreeRam(true);
+                int available = fifoRange * _numSlots * 3;
+
                 // reimplement reg map
                 Wire.beginTransmission(I2C_ADDRESS);
                 Wire.write(7U); // queue bytes to fifo data 0x07
@@ -374,7 +304,6 @@ namespace hf
 
                     while (readBytes > 0)
                     {
-                        printFreeRam(true);
                         read();
                         readBytes -= _numSlots * 3;
                     }
@@ -391,11 +320,12 @@ namespace hf
         MaxReg *_reg;
         MaxFifo *_fifo;
 
-        FrameHandler *_windowHandler;
+        BpmWiFi *_wifi;
+        FrameHandler *_frameHandler;
 
     public:
-        BpmSensor(FrameHandler *frameHandler, byte numSlots)
-            : _numSlots{numSlots}, _windowHandler{frameHandler}
+        BpmSensor(BpmWiFi *wifi, FrameHandler *frameHandler, byte numSlots)
+            : _numSlots{numSlots}, _wifi{wifi}, _frameHandler{frameHandler}
         {
             _reg = new MaxReg(SLOT_COUNT);
             _fifo = new MaxFifo(_reg, frameHandler, numSlots);
@@ -408,6 +338,7 @@ namespace hf
 
         void sample()
         {
+            // unsigned long start = millis();
             _fifo->sample();
         }
     };
