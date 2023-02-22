@@ -162,6 +162,7 @@ namespace hf
             _http->beginBody();
 
             // Serial.println(postData.c_str());
+            // TODO: add opening and closing braces for http endpoint
             _http->print(postData.c_str());
 
             _http->endRequest();
