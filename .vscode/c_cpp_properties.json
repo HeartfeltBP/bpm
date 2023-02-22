@@ -1,3 +1,8 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
 {
     "configurations": [
         {
@@ -21,7 +26,6 @@
                 "/home/kk/.platformio/packages/framework-cmsis-atmel/CMSIS/Device/ATMEL",
                 "/home/kk/.platformio/packages/framework-arduino-samd/cores/arduino",
                 "/home/kk/.platformio/packages/framework-arduino-samd/variants/nano_33_iot",
-                "/home/kk/Documents/PlatformIO/Projects/bpm/.pio/libdeps/nano_33_iot/Unity/src",
                 "/home/kk/.platformio/packages/framework-arduino-samd/libraries/HID",
                 "/home/kk/.platformio/packages/framework-arduino-samd/libraries/I2S/src",
                 "/home/kk/.platformio/packages/framework-arduino-samd/libraries/SAMD_AnalogCorrection/src",
@@ -32,7 +36,7 @@
                 "/home/kk/.platformio/packages/framework-arduino-samd/libraries/SNU/src",
                 "/home/kk/.platformio/packages/framework-arduino-samd/libraries/SSU/src",
                 "/home/kk/.platformio/packages/framework-arduino-samd/libraries/USBHost/src",
-                "${workspaceFolder}/.pio/libdeps/nano_33_iot/BluetoothSerial"
+                ""
             ],
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
@@ -55,7 +59,6 @@
                     "/home/kk/.platformio/packages/framework-cmsis-atmel/CMSIS/Device/ATMEL",
                     "/home/kk/.platformio/packages/framework-arduino-samd/cores/arduino",
                     "/home/kk/.platformio/packages/framework-arduino-samd/variants/nano_33_iot",
-                    "/home/kk/Documents/PlatformIO/Projects/bpm/.pio/libdeps/nano_33_iot/Unity/src",
                     "/home/kk/.platformio/packages/framework-arduino-samd/libraries/HID",
                     "/home/kk/.platformio/packages/framework-arduino-samd/libraries/I2S/src",
                     "/home/kk/.platformio/packages/framework-arduino-samd/libraries/SAMD_AnalogCorrection/src",

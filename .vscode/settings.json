@@ -47,6 +47,8 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "bitset": "cpp",
-        "iostream": "cpp"
+        "iostream": "cpp",
+        "forward_list": "cpp",
+        "list": "cpp"
     }
 }

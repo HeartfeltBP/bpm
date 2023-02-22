@@ -117,6 +117,41 @@ namespace hf
         }
     };
 
+    class Chrono
+    {
+        protected:
+            // add support for multiple timers?
+            unsigned long int _time0;
+
+        public:
+            Chrono()
+            {}  
+
+        void mark() {
+            _time0 = millis();
+        }
+
+        unsigned long int check() {
+            unsigned long int curTime = millis();
+            return curTime - _time0;
+        }
+
+        void reset() {
+            _time0 = 0;
+        }
+        
+        unsigned long int checkReset() {
+            check();
+            reset();
+        }
+
+        unsigned long int checkResetMark() {
+            check();
+            reset();
+            mark();
+        }
+    };
+
     class WindowHandler
     {
     protected:
@@ -124,23 +159,43 @@ namespace hf
         int _numSlots;
 
 
-        std::array<unsigned int, WINDOW_LENGTH> _ppgWindow0;
-        std::array<unsigned int, WINDOW_LENGTH> _ppgWindow1;
-        std::array<int, WINDOW_LENGTH> _ecgWindow;
+        // std::array<ppgInt, WINDOW_LENGTH> _ppgWindow0;
+        // std::array<ppgInt, WINDOW_LENGTH> _ppgWindow1;
+        // std::array<ecgInt, WINDOW_LENGTH> _ecgWindow;
+
+        ppgInt *_ppgWindow0;
+        ppgInt *_ppgWindow1;
+        ecgInt *_ecgWindow;
+
+        int _ppg0i = 0;
+        int _ppg1i = 0;
+        int _ecgi = 0;
 
         BpmWiFi *_wifi;
+        Chrono _chrono;
 
     public:
-        WindowHandler(BpmWiFi *wifi, int numSlots, unsigned int windowLength)
-            : _windowLength{windowLength}, _numSlots{numSlots}, _wifi{wifi} 
+        WindowHandler(BpmWiFi *wifi, int numSlots)
+            : _numSlots{numSlots}, _wifi{wifi} 
         {
-            // switch(numSlots) {
-            //     case 3:
-            //         _ecgi = 0;
-            //     case 2:
-            //         _ppg1i = 0;
-            // }
+            // slot 1 = ppg, slot 2 = ppg, slot 3 = ecg
+            if (numSlots >= 1)
+            {
+                _ppgWindow0 = new ppgInt[WINDOW_LENGTH];
+
+                if (numSlots >= 2)
+                {
+                    _ppgWindow1 = new ppgInt[WINDOW_LENGTH];
+
+                    if (numSlots >= 3)
+                    {
+                        _ecgWindow = new ecgInt[WINDOW_LENGTH];
+                    }
+                }
+            }
+            
         }
+        
 
         bool isEnabled(int slot)
         {
@@ -160,32 +215,42 @@ namespace hf
             {
             case PPG_SLOT0:
                 _ppgWindow0[_ppg0i] = sample;
-                Serial.print(sample);
-                (_numSlots > 1) ? Serial.print(",") : Serial.println(",");
+                // Serial.print(sample);
+                // (_numSlots > 1) ? Serial.print(",") : Serial.println(",");
                 _ppg0i += 1;
                 if(_ppg0i >= WINDOW_LENGTH) {
-                    _ppgWindow0.fill(0);
+                    // _ppgWindow0.fill(0);
+                    _chrono.mark();
+                    _wifi->txWindow(_ppgWindow0, PPG_SLOT0);
                     _ppg0i = 0;
                 }
                 break;
             case PPG_SLOT1:
                 _ppgWindow1[_ppg1i] = sample;
-                Serial.print(sample);
-                (_numSlots > 2) ? Serial.print(",") : Serial.println(",");
+                // Serial.print(sample);
+                // (_numSlots > 2) ? Serial.print(",") : Serial.println(",");
                 // Serial.println(",");
                 _ppg1i += 1;
                 if(_ppg1i >= WINDOW_LENGTH) {
-                    _ppgWindow1.fill(0);
+                    // _ppgWindow1.fill(0);
+                    if(_chrono.checkResetMark() < 5) {
+                        _wifi->txWindow(_ppgWindow1, PPG_SLOT1);
+                        Serial.println("hooray");
+                    }
                     _ppg1i = 0;
                 }
                 break;
             case ECG_SLOT:
                 _ecgWindow[_ecgi] = sample;
-                Serial.print(sample);
-                Serial.println(",");
+                // Serial.print(sample);
+                // Serial.println(",");
                 _ecgi += 1;
                 if(_ecgi >= WINDOW_LENGTH) {
-                    _ecgWindow.fill(0);
+                    // _ecgWindow.fill(0);
+                    if(_chrono.checkResetMark() < 5) {
+                        _wifi->txWindow(_ecgWindow, ECG_SLOT);
+                        Serial.println("hooray");
+                    }
                     _ecgi = 0;
                 }
                 break;
@@ -263,17 +328,17 @@ namespace hf
             // slot 1 = ppg, slot 2 = ppg, slot 3 = ecg
             if (_numSlots >= 1)
             {
-                unsigned int temp = (unsigned int)burstRead((unsigned)PPG_SLOT0);
+                ppgInt temp = (ppgInt)burstRead(PPG_SLOT0);
                 _windowHandler->pushSample(PPG_SLOT0, temp);
 
                 if (_numSlots >= 2)
                 {
-                    temp = (unsigned int)burstRead((unsigned)PPG_SLOT1);
+                    temp = (ppgInt)burstRead(PPG_SLOT1);
                     _windowHandler->pushSample(PPG_SLOT1, temp);
 
                     if (_numSlots >= 3)
                     {
-                        int temps = (int)burstRead(ECG_SLOT);
+                        ecgInt temps = (ecgInt)burstRead(ECG_SLOT);
                         _windowHandler->pushSample(ECG_SLOT, temps);
                     }
                 }

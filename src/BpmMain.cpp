@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <Wire.h>
-#include <iostream>
 
 // #include "./include/bpmWiFi.hpp"
 #include "./include/bpmSensor.hpp"
@@ -18,7 +17,7 @@ void setup()
     bpmWiFi = new hf::BpmWiFi(SSID, PASS);
     bpmWiFi->initWiFi();
 
-    windowHandler = new hf::WindowHandler(bpmWiFi, SLOT_COUNT,  WINDOW_LENGTH);
+    windowHandler = new hf::WindowHandler(bpmWiFi, SLOT_COUNT);
     bpmSensor = new hf::BpmSensor(bpmWiFi, windowHandler, SLOT_COUNT);
 
     Serial.begin(115200);
