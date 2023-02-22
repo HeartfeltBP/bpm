@@ -9,10 +9,11 @@ int getFreeRam()
     return &top - reinterpret_cast<char*>(sbrk(0));
 }
 
-void printFreeRam(bool newline)
+namespace hf 
 {
-    int freeRam = getFreeRam();
-    (newline) ? Serial.println(freeRam) : Serial.print(freeRam);
+    void wait() {
+
+    }
 }
 
 
