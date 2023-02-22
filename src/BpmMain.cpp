@@ -10,14 +10,12 @@ hf::WindowHandler *windowHandler;
 hf::BpmSensor *bpmSensor;
 hf::BpmWiFi *bpmWiFi;
 
-// hf::BpmWiFi bpmWiFi;
-
 void setup()
 {
     bpmWiFi = new hf::BpmWiFi(SSID, PASS);
-    bpmWiFi->initWiFi();
+    // bpmWiFi->initWiFi(true);
 
-    windowHandler = new hf::WindowHandler(bpmWiFi, SLOT_COUNT);
+    windowHandler = new hf::WindowHandler(bpmWiFi, SLOT_COUNT, false);
     bpmSensor = new hf::BpmSensor(bpmWiFi, windowHandler, SLOT_COUNT);
 
     Serial.begin(115200);

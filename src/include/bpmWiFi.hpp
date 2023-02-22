@@ -57,7 +57,6 @@ namespace hf
                     Serial.print("WiFi status: ");
                     Serial.println(_wlStatus);
                     _wlStatus = WiFi.begin(SSID, PASS);
-                    delay(1000);
 
                     giveUp--;
                     if (giveUp <= 0)
@@ -85,7 +84,6 @@ namespace hf
                     Serial.print("Client status: ");
                     Serial.println(_clStatus);
                     _clStatus = _client.connect(URL, LPORT);
-                    delay(1000);
 
                     giveUp--;
                     if (giveUp <= 0)
@@ -103,11 +101,11 @@ namespace hf
         BpmWiFi(std::string url = URL, std::string ssid = SSID, std::string password = PASS)
         {}
 
-        int initWiFi(std::string ssid = SSID, std::string pass = PASS, std::string url = URL)
+        int initWiFi(bool enterprise = false, std::string ssid = SSID, std::string pass = PASS, std::string url = URL)
         {
             _http = new HttpClient(_client, URL, LPORT);
 
-            if (connectWiFi(ssid, pass) >= 0 && connectClient(url) >= 0)
+            if (connectWiFi(ssid, pass, enterprise) >= 0 && connectClient(url) >= 0)
             {
                 return 0;
             }
@@ -126,12 +124,15 @@ namespace hf
                 retryWiFi();
             }
 
-            Serial.println("FREE RAM: ");
-            Serial.println(getFreeRam());
-            Serial.println(); Serial.println(WiFi.status());
-            Serial.println(); Serial.println();
+            // Serial.println("FREE RAM: ");
+            // Serial.println(getFreeRam());
+            // Serial.println(); Serial.println(WiFi.status());
+            // Serial.println(); Serial.println();
 
             std::string postData;
+            if(type >= 0) {
+                postData.append(std::to_string(type) + std::string(",,"));
+            }
             switch(type) {
                 case PPG_SLOT0:
                     postData.append("PPG0,,");
@@ -160,7 +161,7 @@ namespace hf
             _http->connectionKeepAlive();
             _http->beginBody();
 
-            Serial.println(postData.c_str());
+            // Serial.println(postData.c_str());
             _http->print(postData.c_str());
 
             _http->endRequest();
@@ -172,9 +173,17 @@ namespace hf
             {
                 retryWiFi();
             }
-            _http->get(testEndpoint.c_str());
+            // _http->get(testEndpoint.c_str());
             Serial.print(_http->responseStatusCode());
             Serial.println(_http->responseBody());
+        }
+
+        bool isWiFiConnected() {
+            return (_wlStatus == WL_CONNECTED) ? true : false;
+        }
+
+        bool isClientConnected() {
+            return (_wlStatus == WL_CONNECTED) ? true : false;
         }
 
         void retryWiFi()

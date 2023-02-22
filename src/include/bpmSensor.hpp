@@ -3,16 +3,9 @@
 
 #include <Wire.h>
 #include <Arduino.h>
-#include <array>
-#include <utility>
-#include <vector>
-#include <bitset>
 
-#include <ArduinoJson.hpp>
-#include <Arduino_LSM6DS3.h>
-
+#include "max_o2_algorithm.h"
 #include "constants.hpp"
-
 #include "bpmWiFi.hpp"
 #include "utils.hpp"
 
@@ -121,34 +114,66 @@ namespace hf
     {
         protected:
             // add support for multiple timers?
-            unsigned long int _time0;
+            unsigned long int *_time;
+            boolean *_setList;
+            byte _timeSlots;
 
         public:
-            Chrono()
-            {}  
+            Chrono(byte timeSlots = SLOT_COUNT)
+                : _timeSlots{timeSlots}
+            {
+                _time = new unsigned long int[timeSlots];
+                _setList = new boolean[timeSlots];
+            }
 
-        void mark() {
-            _time0 = millis();
+        boolean slotUsed(byte slot) {
+            if(slot > _timeSlots) return false;
+            return (_time[slot] && _setList[slot]) ? true : false;
         }
 
-        unsigned long int check() {
-            unsigned long int curTime = millis();
-            return curTime - _time0;
+        void mark(byte slot) {
+            _time[slot] = millis();
+            _setList[slot] = true;
         }
 
-        void reset() {
-            _time0 = 0;
+        unsigned long int check(byte slot) {
+            if(slotUsed(slot)) {
+                unsigned long int curTime = millis();
+                return curTime - _time[slot];
+            } else {
+                return 99999999;
+            }
+        }
+
+        void reset(byte slot) {
+            _time[slot] = 0;
+            _setList[slot] = false;
+        }
+
+        void resetAll() {
+            for(int i = 0; i < _timeSlots; i++) {
+                reset(i);
+            }
         }
         
-        unsigned long int checkReset() {
-            check();
-            reset();
+        unsigned long int checkReset(byte slot) {
+            int cur = check(slot);
+            reset(slot);
+            return cur;
         }
 
-        unsigned long int checkResetMark() {
-            check();
-            reset();
-            mark();
+        unsigned long int checkResetMark(byte slot) {
+            int cur = check(slot);
+            reset(slot);
+            mark(slot);
+            return cur;
+        }
+
+        boolean handleTime(byte slot, unsigned long int interval) 
+        {
+            Serial.println(check(slot));
+            return (checkResetMark(slot) < interval) ? true : false;
+            return false;
         }
     };
 
@@ -158,10 +183,7 @@ namespace hf
         unsigned int _windowLength;
         int _numSlots;
 
-
-        // std::array<ppgInt, WINDOW_LENGTH> _ppgWindow0;
-        // std::array<ppgInt, WINDOW_LENGTH> _ppgWindow1;
-        // std::array<ecgInt, WINDOW_LENGTH> _ecgWindow;
+        bool _serial;
 
         ppgInt *_ppgWindow0;
         ppgInt *_ppgWindow1;
@@ -175,8 +197,8 @@ namespace hf
         Chrono _chrono;
 
     public:
-        WindowHandler(BpmWiFi *wifi, int numSlots)
-            : _numSlots{numSlots}, _wifi{wifi} 
+        WindowHandler(BpmWiFi *wifi, int numSlots, bool serial = false)
+            : _numSlots{numSlots}, _wifi{wifi}, _serial{serial}
         {
             // slot 1 = ppg, slot 2 = ppg, slot 3 = ecg
             if (numSlots >= 1)
@@ -204,10 +226,6 @@ namespace hf
             return ret;
         }
 
-        void handleWindow(int slot, bool verbose)
-        {
-        }
-
         template <typename sampleInt>
         void pushSample(byte slot, sampleInt sample)
         {
@@ -215,49 +233,64 @@ namespace hf
             {
             case PPG_SLOT0:
                 _ppgWindow0[_ppg0i] = sample;
-                // Serial.print(sample);
-                // (_numSlots > 1) ? Serial.print(",") : Serial.println(",");
+                if(_serial) {
+                    Serial.print(sample);
+                    (_numSlots > 1) ? Serial.print(",") : Serial.println(",");
+                }
                 _ppg0i += 1;
                 if(_ppg0i >= WINDOW_LENGTH) {
-                    // _ppgWindow0.fill(0);
-                    _chrono.mark();
-                    _wifi->txWindow(_ppgWindow0, PPG_SLOT0);
-                    _ppg0i = 0;
+                    // if(_chrono.handleTime(PPG_SLOT0, 5)) {
+                    //     Serial.print("hooray"); Serial.println(1);
+                    // }
+                    // _wifi->txWindow(_ppgWindow0, PPG_SLOT0);
+                    // _ppg0i = 0;
                 }
                 break;
             case PPG_SLOT1:
                 _ppgWindow1[_ppg1i] = sample;
-                // Serial.print(sample);
-                // (_numSlots > 2) ? Serial.print(",") : Serial.println(",");
-                // Serial.println(",");
+                if(_serial) {
+                    Serial.print(sample);
+                    (_numSlots > 2) ? Serial.print(",") : Serial.println(",");
+                }
                 _ppg1i += 1;
                 if(_ppg1i >= WINDOW_LENGTH) {
-                    // _ppgWindow1.fill(0);
-                    if(_chrono.checkResetMark() < 5) {
-                        _wifi->txWindow(_ppgWindow1, PPG_SLOT1);
-                        Serial.println("hooray");
-                    }
-                    _ppg1i = 0;
+                    // if(_chrono.handleTime(PPG_SLOT1, 5)) {
+                    //     // _wifi->txWindow(_ppgWindow1, PPG_SLOT1);
+                    //     Serial.print("hooray"); Serial.println(2);
+                    // }
+                    // _ppg1i = 0;
                 }
                 break;
             case ECG_SLOT:
                 _ecgWindow[_ecgi] = sample;
-                // Serial.print(sample);
-                // Serial.println(",");
+                if(_serial) {
+                    Serial.print(sample);
+                    Serial.println(",");
+                }
                 _ecgi += 1;
                 if(_ecgi >= WINDOW_LENGTH) {
-                    // _ecgWindow.fill(0);
-                    if(_chrono.checkResetMark() < 5) {
-                        _wifi->txWindow(_ecgWindow, ECG_SLOT);
-                        Serial.println("hooray");
-                    }
-                    _ecgi = 0;
+                    // if(_chrono.handleTime(ECG_SLOT, 5)) {
+                    //     // _wifi->txWindow(_ecgWindow, ECG_SLOT);
+                    //     Serial.print("hooray"); Serial.println(3);
+                    // }
+
+                    // calculateBloodOx();
+                    _ecgi = 0; _ppg1i = 0; _ppg0i = 0;
                 }
                 break;
             default:
                 Serial.println("What the fuck?");
                 break;
             }
+        }
+
+        int calculateBloodOx() {
+            int8_t validO2, validHr;
+            int32_t retValO2, retValHr;
+
+            maxim_heart_rate_and_oxygen_saturation(_ppgWindow0, (int32_t)_ppg0i, _ppgWindow1, &retValO2, &validO2, &retValHr, &validHr);
+            Serial.print("HR: "); Serial.println(retValHr);
+            Serial.print("O2: "); Serial.println(retValO2);
         }
     };
 
