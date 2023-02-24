@@ -1,5 +1,8 @@
+#include <stdint.h>
+
 typedef unsigned long int ppgInt;
 typedef long int ecgInt;
+typedef int8_t byte;
 
 #define DISABLED -3
 

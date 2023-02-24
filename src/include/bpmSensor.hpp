@@ -1,13 +1,11 @@
 #ifndef HF_BPM_MAX
 #define HF_BPM_MAX
 
-#include <Wire.h>
-#include <Arduino.h>
-
-#include "max_o2_algorithm.h"
+#include <drivers/i2c.h>
 #include "constants.hpp"
-#include "bpmWiFi.hpp"
-#include "utils.hpp"
+#include <zephyr.h>
+// #include "bpmWiFi.hpp"
+// #include "utils.hpp"
 
 namespace hf
 {
@@ -33,29 +31,29 @@ namespace hf
             // track register value with map
             // this->_localRegi.emplace(reg_pair(reg, value));
 
-            Wire.beginTransmission(I2C_ADDRESS);
-            Wire.write(reg);
-            Wire.write(value);
-            Wire.endTransmission();
+            // Wire.beginTransmission(I2C_ADDRESS);
+            // Wire.write(reg);
+            // Wire.write(value);
+            // Wire.endTransmission();
         }
 
         byte read(byte reg)
         {
-            Wire.beginTransmission(I2C_ADDRESS);
-            Wire.write(reg);
-            Wire.endTransmission(false);
+            // Wire.beginTransmission(I2C_ADDRESS);
+            // Wire.write(reg);
+            // Wire.endTransmission(false);
 
-            Wire.requestFrom(_i2cAddress, 1);
+            // Wire.requestFrom(_i2cAddress, 1);
 
-            int available = Wire.available();
-            if (available > 0)
-            {
-                int ret = Wire.read();
-                // this->_localRegi.emplace(reg_pair(reg, temp));
-                return ret;
-            }
+            // int available = Wire.available();
+            // if (available > 0)
+            // {
+            //     int ret = Wire.read();
+            //     // this->_localRegi.emplace(reg_pair(reg, temp));
+            //     return ret;
+            // }
 
-            return -1;
+            // return -1;
         }
 
         // move to sensor to isolate functionality?
@@ -100,82 +98,82 @@ namespace hf
                 write(0xCE, 0x0A);
                 write(0xCF, 0x18);
                 write(0xFF, 0x00);
-                Serial.println("ECG Configuration: Complete");
+                // Serial.println("ECG Configuration: Complete");
             }
 
             // // 0x14 = 'led range?' = led current (50 mA = 0x00)
             write(0x14, 0x00);
-            Serial.println("PPG Configuration: Complete");
-            Serial.println("FIFO Configuration: Complete");
+            // Serial.println("PPG Configuration: Complete");
+            // Serial.println("FIFO Configuration: Complete");
         }
     };
 
-    class Chrono
-    {
-        protected:
-            // add support for multiple timers?
-            unsigned long int *_time;
-            boolean *_setList;
-            byte _timeSlots;
+    // class Chrono
+    // {
+    //     protected:
+    //         // add support for multiple timers?
+    //         unsigned long int *_time;
+    //         boolean *_setList;
+    //         byte _timeSlots;
 
-        public:
-            Chrono(byte timeSlots = SLOT_COUNT)
-                : _timeSlots{timeSlots}
-            {
-                _time = new unsigned long int[timeSlots];
-                _setList = new boolean[timeSlots];
-            }
+    //     public:
+    //         Chrono(byte timeSlots = SLOT_COUNT)
+    //             : _timeSlots{timeSlots}
+    //         {
+    //             _time = new unsigned long int[timeSlots];
+    //             _setList = new boolean[timeSlots];
+    //         }
 
-        boolean slotUsed(byte slot) {
-            if(slot > _timeSlots) return false;
-            return (_time[slot] && _setList[slot]) ? true : false;
-        }
+    //     boolean slotUsed(byte slot) {
+    //         if(slot > _timeSlots) return false;
+    //         return (_time[slot] && _setList[slot]) ? true : false;
+    //     }
 
-        void mark(byte slot) {
-            _time[slot] = millis();
-            _setList[slot] = true;
-        }
+    //     void mark(byte slot) {
+    //         _time[slot] = millis();
+    //         _setList[slot] = true;
+    //     }
 
-        unsigned long int check(byte slot) {
-            if(slotUsed(slot)) {
-                unsigned long int curTime = millis();
-                return curTime - _time[slot];
-            } else {
-                return 99999999;
-            }
-        }
+    //     unsigned long int check(byte slot) {
+    //         if(slotUsed(slot)) {
+    //             unsigned long int curTime = millis();
+    //             return curTime - _time[slot];
+    //         } else {
+    //             return 99999999;
+    //         }
+    //     }
 
-        void reset(byte slot) {
-            _time[slot] = 0;
-            _setList[slot] = false;
-        }
+    //     void reset(byte slot) {
+    //         _time[slot] = 0;
+    //         _setList[slot] = false;
+    //     }
 
-        void resetAll() {
-            for(int i = 0; i < _timeSlots; i++) {
-                reset(i);
-            }
-        }
+    //     void resetAll() {
+    //         for(int i = 0; i < _timeSlots; i++) {
+    //             reset(i);
+    //         }
+    //     }
         
-        unsigned long int checkReset(byte slot) {
-            int cur = check(slot);
-            reset(slot);
-            return cur;
-        }
+    //     unsigned long int checkReset(byte slot) {
+    //         int cur = check(slot);
+    //         reset(slot);
+    //         return cur;
+    //     }
 
-        unsigned long int checkResetMark(byte slot) {
-            int cur = check(slot);
-            reset(slot);
-            mark(slot);
-            return cur;
-        }
+    //     unsigned long int checkResetMark(byte slot) {
+    //         int cur = check(slot);
+    //         reset(slot);
+    //         mark(slot);
+    //         return cur;
+    //     }
 
-        boolean handleTime(byte slot, unsigned long int interval) 
-        {
-            Serial.println(check(slot));
-            return (checkResetMark(slot) < interval) ? true : false;
-            return false;
-        }
-    };
+    //     boolean handleTime(byte slot, unsigned long int interval) 
+    //     {
+    //         Serial.println(check(slot));
+    //         return (checkResetMark(slot) < interval) ? true : false;
+    //         return false;
+    //     }
+    // };
 
     class WindowHandler
     {
@@ -193,12 +191,12 @@ namespace hf
         int _ppg1i = 0;
         int _ecgi = 0;
 
-        BpmWiFi *_wifi;
-        Chrono _chrono;
+        // BpmWiFi *_wifi;
+        // Chrono _chrono;
 
     public:
-        WindowHandler(BpmWiFi *wifi, int numSlots, bool serial = false)
-            : _numSlots{numSlots}, _wifi{wifi}, _serial{serial}
+        WindowHandler(int numSlots, bool serial = false)
+            : _numSlots{numSlots}, _serial{serial}
         {
             // slot 1 = ppg, slot 2 = ppg, slot 3 = ecg
             if (numSlots >= 1)
@@ -233,10 +231,10 @@ namespace hf
             {
             case PPG_SLOT0:
                 _ppgWindow0[_ppg0i] = sample;
-                if(_serial) {
-                    Serial.print(sample);
-                    (_numSlots > 1) ? Serial.print(",") : Serial.println(",");
-                }
+                // if(_serial) {
+                //     Serial.print(sample);
+                //     (_numSlots > 1) ? Serial.print(",") : Serial.println(",");
+                // }
                 _ppg0i += 1;
                 if(_ppg0i >= WINDOW_LENGTH) {
                     // if(_chrono.handleTime(PPG_SLOT0, 5)) {
@@ -248,10 +246,10 @@ namespace hf
                 break;
             case PPG_SLOT1:
                 _ppgWindow1[_ppg1i] = sample;
-                if(_serial) {
-                    Serial.print(sample);
-                    (_numSlots > 2) ? Serial.print(",") : Serial.println(",");
-                }
+                // if(_serial) {
+                //     Serial.print(sample);
+                //     (_numSlots > 2) ? Serial.print(",") : Serial.println(",");
+                // }
                 _ppg1i += 1;
                 if(_ppg1i >= WINDOW_LENGTH) {
                     // if(_chrono.handleTime(PPG_SLOT1, 5)) {
@@ -263,10 +261,10 @@ namespace hf
                 break;
             case ECG_SLOT:
                 _ecgWindow[_ecgi] = sample;
-                if(_serial) {
-                    Serial.print(sample);
-                    Serial.println(",");
-                }
+                // if(_serial) {
+                //     Serial.print(sample);
+                //     Serial.println(",");
+                // }
                 _ecgi += 1;
                 if(_ecgi >= WINDOW_LENGTH) {
                     // if(_chrono.handleTime(ECG_SLOT, 5)) {
@@ -279,18 +277,8 @@ namespace hf
                 }
                 break;
             default:
-                Serial.println("What the fuck?");
                 break;
             }
-        }
-
-        int calculateBloodOx() {
-            int8_t validO2, validHr;
-            int32_t retValO2, retValHr;
-
-            maxim_heart_rate_and_oxygen_saturation(_ppgWindow0, (int32_t)_ppg0i, _ppgWindow1, &retValO2, &validO2, &retValHr, &validHr);
-            Serial.print("HR: "); Serial.println(retValHr);
-            Serial.print("O2: "); Serial.println(retValO2);
         }
     };
 
@@ -342,13 +330,14 @@ namespace hf
 
             bool ecg = (slot > 2) ? true : false;
 
-            longArr[3] = 0;
-            longArr[2] = Wire.read();
-            longArr[1] = Wire.read();
-            longArr[0] = Wire.read();
+            // longArr[3] = 0;
+            // longArr[2] = Wire.read();
+            // longArr[1] = Wire.read();
+            // longArr[0] = Wire.read();
 
             sampleInt temp;
-            memcpy(&temp, longArr, sizeof(temp));
+            // memcpy(&temp, longArr, sizeof(temp));
+
 
             if (ecg && temp & (1 << 17))
                 temp -= (1 << 18);
@@ -391,10 +380,10 @@ namespace hf
                 // available = num samples * num devices * bits per sample
                 int available = fifoRange * _numSlots * 3;
 
-                // reimplement reg map
-                Wire.beginTransmission(I2C_ADDRESS);
-                Wire.write(7U); // queue bytes to fifo data 0x07
-                Wire.endTransmission();
+                // // reimplement reg map
+                // Wire.beginTransmission(I2C_ADDRESS);
+                // Wire.write(7U); // queue bytes to fifo data 0x07
+                // Wire.endTransmission();
 
                 while (available > 0)
                 {
@@ -407,7 +396,7 @@ namespace hf
                         readBytes = (32 - (32 % (3 * _numSlots)));
                     available -= readBytes;
 
-                    Wire.requestFrom(I2C_ADDRESS, readBytes);
+                    // Wire.requestFrom(I2C_ADDRESS, readBytes);
 
                     while (readBytes > 0)
                     {
@@ -427,12 +416,12 @@ namespace hf
         MaxReg *_reg;
         MaxFifo *_fifo;
 
-        BpmWiFi *_wifi;
+        // BpmWiFi *_wifi;
         WindowHandler *_windowHandler;
 
     public:
-        BpmSensor(BpmWiFi *wifi, WindowHandler *windowHandler, byte numSlots)
-            : _numSlots{numSlots}, _wifi{wifi}, _windowHandler{windowHandler}
+        BpmSensor(WindowHandler *windowHandler, byte numSlots)
+            : _numSlots{numSlots}, _windowHandler{windowHandler}
         {
             _reg = new MaxReg(SLOT_COUNT);
             _fifo = new MaxFifo(_reg, windowHandler, numSlots);
