@@ -14,7 +14,7 @@
             "name": "PIO Debug",
             "executable": "/home/kk/Documents/PlatformIO/Projects/bpm/.pio/build/nano_33_iot/firmware.elf",
             "projectEnvName": "nano_33_iot",
-            "toolchainBinDir": "/home/kk/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "toolchainBinDir": "/home/kk/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
             "internalConsoleOptions": "openOnSessionStart",
             "svdPath": "/home/kk/.platformio/platforms/atmelsam/misc/svd/ATSAMD21G18A.svd",
             "preLaunchTask": {
@@ -28,7 +28,7 @@
             "name": "PIO Debug (skip Pre-Debug)",
             "executable": "/home/kk/Documents/PlatformIO/Projects/bpm/.pio/build/nano_33_iot/firmware.elf",
             "projectEnvName": "nano_33_iot",
-            "toolchainBinDir": "/home/kk/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "toolchainBinDir": "/home/kk/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
             "internalConsoleOptions": "openOnSessionStart",
             "svdPath": "/home/kk/.platformio/platforms/atmelsam/misc/svd/ATSAMD21G18A.svd"
         },
@@ -38,7 +38,7 @@
             "name": "PIO Debug (without uploading)",
             "executable": "/home/kk/Documents/PlatformIO/Projects/bpm/.pio/build/nano_33_iot/firmware.elf",
             "projectEnvName": "nano_33_iot",
-            "toolchainBinDir": "/home/kk/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "toolchainBinDir": "/home/kk/.platformio/packages/toolchain-gccarmnoneeabi@1.70201.0/bin",
             "internalConsoleOptions": "openOnSessionStart",
             "svdPath": "/home/kk/.platformio/platforms/atmelsam/misc/svd/ATSAMD21G18A.svd",
             "loadMode": "manual"

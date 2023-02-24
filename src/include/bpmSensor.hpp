@@ -185,9 +185,9 @@ namespace hf
 
         bool _serial;
 
-        ppgInt *_ppgWindow0;
-        ppgInt *_ppgWindow1;
-        ecgInt *_ecgWindow;
+        ppgInt _ppgWindow0;
+        ppgInt _ppgWindow1;
+        ecgInt _ecgWindow;
 
         int _ppg0i = 0;
         int _ppg1i = 0;
