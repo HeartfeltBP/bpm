@@ -59,6 +59,7 @@
 #define FLAGS	0
 #endif
 
+
 void main(void)
 {
 	const struct device *dev;
@@ -79,6 +80,8 @@ void main(void)
 		gpio_pin_set(dev, PIN, (int)led_is_on);
 		led_is_on = !led_is_on;
 		k_msleep(SLEEP_TIME_MS);
-        printk("balls");
+        printk("BALLS");
+		const int *balls = (int*)k_malloc(10);
+		k_free((void*)balls);
 	}
 }

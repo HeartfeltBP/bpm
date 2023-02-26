@@ -1,8 +1,3 @@
-//
-// !!! WARNING !!! AUTO-GENERATED FILE!
-// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
-// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
-//
 {
     "configurations": [
         {
@@ -15,6 +10,7 @@
                 "/home/kk/.platformio/packages/framework-zephyr/soc/arm/atmel_sam0/samd21",
                 "/home/kk/.platformio/packages/framework-zephyr/drivers",
                 "/home/kk/.platformio/packages/framework-zephyr/soc/arm/atmel_sam0/common",
+                "/home/kk/.platformio/packages/framework-zephyr/subsys/usb",
                 "/home/kk/.platformio/packages/framework-zephyr/_pio/modules/hal/cmsis/CMSIS/Core/Include",
                 "/home/kk/.platformio/packages/framework-zephyr/_pio/modules/hal/atmel/asf/sam0/include/samd21",
                 ""
@@ -29,6 +25,7 @@
                     "/home/kk/.platformio/packages/framework-zephyr/soc/arm/atmel_sam0/samd21",
                     "/home/kk/.platformio/packages/framework-zephyr/drivers",
                     "/home/kk/.platformio/packages/framework-zephyr/soc/arm/atmel_sam0/common",
+                    "/home/kk/.platformio/packages/framework-zephyr/subsys/usb",
                     "/home/kk/.platformio/packages/framework-zephyr/_pio/modules/hal/cmsis/CMSIS/Core/Include",
                     "/home/kk/.platformio/packages/framework-zephyr/_pio/modules/hal/atmel/asf/sam0/include/samd21",
                     ""
@@ -47,6 +44,7 @@
                 ""
             ],
             "cStandard": "c99",
+            "cppStandard": "c++11",
             "forcedInclude": [
                 "/home/kk/Documents/PlatformIO/Projects/bpm/.pio/build/nano_33_iot/zephyr/include/generated/autoconf.h",
                 "/home/kk/.platformio/packages/framework-zephyr/include/toolchain/zephyr_stdint.h",
@@ -61,11 +59,14 @@
                 "-isystem",
                 "/home/kk/.platformio/packages/framework-zephyr/lib/libc/minimal/include",
                 "-isystem",
+                "/home/kk/.platformio/packages/framework-zephyr/subsys/cpp/include",
+                "-isystem",
                 "/home/kk/.platformio/packages/toolchain-gccarmnoneeabi/bin/../lib/gcc/arm-none-eabi/8.2.1/include",
                 "-isystem",
                 "/home/kk/.platformio/packages/toolchain-gccarmnoneeabi/bin/../lib/gcc/arm-none-eabi/8.2.1/include-fixed",
                 ""
-            ]
+            ],
+            "configurationProvider": "ms-vscode.cmake-tools"
         }
     ],
     "version": 4
