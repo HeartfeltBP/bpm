@@ -17,6 +17,8 @@ namespace hf
         int _i2cAddress;
         int _numSlots;
 
+
+
     public:
         MaxReg(byte numSlots = 1, byte i2cAddress = 0x5E)
             : _i2cAddress{i2cAddress}, _numSlots{numSlots} {}
