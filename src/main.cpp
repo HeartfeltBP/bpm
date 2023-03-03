@@ -3,13 +3,11 @@
 #include <string.h>
 #include <usb/usb_device.h>
 #include <drivers/uart.h>
+#include <drivers/i2c.h>
 #include "bpmSensor.hpp"
-
-BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_CHOSEN(zephyr_console),zephyr_cdc_acm_uart), "Console device is not ACM CDC UART device");
 
 int main() 
 {
-	// const struct device *max_dev = DEVICE_DT_GET(DT_CHOSEN(max86150));
 	const struct device *usb_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 	uint32_t dtr = 0;
 
@@ -23,7 +21,10 @@ int main()
 		k_sleep(K_MSEC(100));
 	}
 
-
+	for(int i = 0; i < 1000; i++) {
+		printk("Value: %d\n", i);
+		k_msleep(1000);
+	}
 
 	return 0;
 }

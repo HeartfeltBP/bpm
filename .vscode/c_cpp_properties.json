@@ -1,3 +1,8 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
 {
     "configurations": [
         {
@@ -65,8 +70,7 @@
                 "-isystem",
                 "/home/kk/.platformio/packages/toolchain-gccarmnoneeabi/bin/../lib/gcc/arm-none-eabi/8.2.1/include-fixed",
                 ""
-            ],
-            "configurationProvider": "ms-vscode.cmake-tools"
+            ]
         }
     ],
     "version": 4

@@ -1,6 +1,7 @@
 / {
     chosen {
         zephyr,console = &cdc_acm_uart0;
+        
     };
 };
 
@@ -11,13 +12,13 @@
     };
 };
 
-// &i2c0 {
-//     status = "okay";
-//     clock-frequency = <I2C_BITRATE_FAST>;
-//     sda-pin = <7>;
-//     scl-pin = <8>;
-
-//     max86150: max86150 {
-//         status = "okay"
-//     };
-// };
+&sercom4 {
+    max86150: max86150@94 {
+        compatible = "atmel";
+        status = "okay";
+        reg = <94>;
+        label="MAX86150";
+        interrupts = < 0xd 0x0 >;
+        clocks = < &gclk 0x18 >, < &pm 0x20 0x6 >;
+    };
+};

@@ -1,11 +1,9 @@
 #ifndef HF_BPM_MAX
 #define HF_BPM_MAX
 
-#include <drivers/i2c.h>
 #include "constants.hpp"
 #include <zephyr.h>
-// #include "bpmWiFi.hpp"
-// #include "utils.hpp"
+#include "i2c.hpp"
 
 namespace hf
 {
@@ -20,49 +18,35 @@ namespace hf
 
 
     public:
-        MaxReg(byte numSlots = 1, byte i2cAddress = 0x5E)
+        MaxReg(uint8_t numSlots = 1, uint8_t i2cAddress = 0x5E)
             : _i2cAddress{i2cAddress}, _numSlots{numSlots} {}
 
-        void write(byte reg, byte value)
+        void write(uint8_t reg, uint8_t value)
         {
-            // TODO: reimplement local register tracking
-            // is this uninitialized?
-            // if(this->localRegi[reg])
-            // this->localRegi[reg].setLocalVal(value);
-
-            // track register value with map
-            // this->_localRegi.emplace(reg_pair(reg, value));
-
-            // Wire.beginTransmission(I2C_ADDRESS);
-            // Wire.write(reg);
-            // Wire.write(value);
-            // Wire.endTransmission();
+            i2c_reg_write_byte_dt(&i2c_dt, reg, value);
         }
 
-        byte read(byte reg)
+        uint8_t read(uint8_t reg)
         {
-            // Wire.beginTransmission(I2C_ADDRESS);
-            // Wire.write(reg);
-            // Wire.endTransmission(false);
-
-            // Wire.requestFrom(_i2cAddress, 1);
-
-            // int available = Wire.available();
-            // if (available > 0)
-            // {
-            //     int ret = Wire.read();
-            //     // this->_localRegi.emplace(reg_pair(reg, temp));
-            //     return ret;
-            // }
-
-            // return -1;
+            uint8_t retVal;
+            i2c_reg_read_byte_dt(&i2c_dt, reg, &retVal);
+            return retVal;
         }
+
+        // uint8_t burstRead(uint8_t reg, int numBytes)
+        // {
+        //     void *retVal = malloc(numBytes);
+        //     i2c_reg_read_byte_dt(&i2c_dt, reg, &retVal);
+        //     return retVal;
+        // }
 
         // move to sensor to isolate functionality?
         void config()
         {
             // sys control - reset, enable, fifo config
             // write(0x02, 0x80);
+            write(0x0D, 0x01);
+
             write(0x0D, 0x01);
             write(0x0D, 0x04);
             // write(0x08, 0x7F);
@@ -100,82 +84,16 @@ namespace hf
                 write(0xCE, 0x0A);
                 write(0xCF, 0x18);
                 write(0xFF, 0x00);
-                // Serial.println("ECG Configuration: Complete");
+
+                printk("ECG Configuration: Complete\n");
             }
 
             // // 0x14 = 'led range?' = led current (50 mA = 0x00)
             write(0x14, 0x00);
-            // Serial.println("PPG Configuration: Complete");
-            // Serial.println("FIFO Configuration: Complete");
+            // printk("PPG Configuration: Complete\n");
+            // printk("FIFO Configuration: Complete\n");
         }
     };
-
-    // class Chrono
-    // {
-    //     protected:
-    //         // add support for multiple timers?
-    //         unsigned long int *_time;
-    //         boolean *_setList;
-    //         byte _timeSlots;
-
-    //     public:
-    //         Chrono(byte timeSlots = SLOT_COUNT)
-    //             : _timeSlots{timeSlots}
-    //         {
-    //             _time = new unsigned long int[timeSlots];
-    //             _setList = new boolean[timeSlots];
-    //         }
-
-    //     boolean slotUsed(byte slot) {
-    //         if(slot > _timeSlots) return false;
-    //         return (_time[slot] && _setList[slot]) ? true : false;
-    //     }
-
-    //     void mark(byte slot) {
-    //         _time[slot] = millis();
-    //         _setList[slot] = true;
-    //     }
-
-    //     unsigned long int check(byte slot) {
-    //         if(slotUsed(slot)) {
-    //             unsigned long int curTime = millis();
-    //             return curTime - _time[slot];
-    //         } else {
-    //             return 99999999;
-    //         }
-    //     }
-
-    //     void reset(byte slot) {
-    //         _time[slot] = 0;
-    //         _setList[slot] = false;
-    //     }
-
-    //     void resetAll() {
-    //         for(int i = 0; i < _timeSlots; i++) {
-    //             reset(i);
-    //         }
-    //     }
-        
-    //     unsigned long int checkReset(byte slot) {
-    //         int cur = check(slot);
-    //         reset(slot);
-    //         return cur;
-    //     }
-
-    //     unsigned long int checkResetMark(byte slot) {
-    //         int cur = check(slot);
-    //         reset(slot);
-    //         mark(slot);
-    //         return cur;
-    //     }
-
-    //     boolean handleTime(byte slot, unsigned long int interval) 
-    //     {
-    //         Serial.println(check(slot));
-    //         return (checkResetMark(slot) < interval) ? true : false;
-    //         return false;
-    //     }
-    // };
 
     class WindowHandler
     {
@@ -227,54 +145,40 @@ namespace hf
         }
 
         template <typename sampleInt>
-        void pushSample(byte slot, sampleInt sample)
+        void pushSample(uint8_t slot, sampleInt sample)
         {
             switch (slot)
             {
             case PPG_SLOT0:
                 _ppgWindow0[_ppg0i] = sample;
-                // if(_serial) {
-                //     Serial.print(sample);
-                //     (_numSlots > 1) ? Serial.print(",") : Serial.println(",");
-                // }
+                if(_serial) {
+                    printk("%lu", sample);
+                    (_numSlots > 1) ? printk(",") : printk(",\n");
+                }
                 _ppg0i += 1;
                 if(_ppg0i >= WINDOW_LENGTH) {
-                    // if(_chrono.handleTime(PPG_SLOT0, 5)) {
-                    //     Serial.print("hooray"); Serial.println(1);
-                    // }
                     // _wifi->txWindow(_ppgWindow0, PPG_SLOT0);
-                    // _ppg0i = 0;
+                    _ppg0i = 0;
                 }
                 break;
             case PPG_SLOT1:
                 _ppgWindow1[_ppg1i] = sample;
-                // if(_serial) {
-                //     Serial.print(sample);
-                //     (_numSlots > 2) ? Serial.print(",") : Serial.println(",");
-                // }
+                if(_serial) {
+                    printk("%lu", sample);
+                    (_numSlots > 2) ? printk(",") : printk(",\n");
+                }
                 _ppg1i += 1;
                 if(_ppg1i >= WINDOW_LENGTH) {
-                    // if(_chrono.handleTime(PPG_SLOT1, 5)) {
-                    //     // _wifi->txWindow(_ppgWindow1, PPG_SLOT1);
-                    //     Serial.print("hooray"); Serial.println(2);
-                    // }
-                    // _ppg1i = 0;
+                    _ppg1i = 0;
                 }
                 break;
             case ECG_SLOT:
                 _ecgWindow[_ecgi] = sample;
-                // if(_serial) {
-                //     Serial.print(sample);
-                //     Serial.println(",");
-                // }
+                if(_serial) {
+                    printk("%lu\n", sample);
+                }
                 _ecgi += 1;
                 if(_ecgi >= WINDOW_LENGTH) {
-                    // if(_chrono.handleTime(ECG_SLOT, 5)) {
-                    //     // _wifi->txWindow(_ecgWindow, ECG_SLOT);
-                    //     Serial.print("hooray"); Serial.println(3);
-                    // }
-
-                    // calculateBloodOx();
                     _ecgi = 0; _ppg1i = 0; _ppg0i = 0;
                 }
                 break;
@@ -289,13 +193,13 @@ namespace hf
     {
 
     protected:
-        byte _numSlots;
+        uint8_t _numSlots;
 
         MaxReg *_reg;
         WindowHandler *_windowHandler;
 
     public:
-        MaxFifo(MaxReg *reg, WindowHandler *windowHandler, byte numSlots)
+        MaxFifo(MaxReg *reg, WindowHandler *windowHandler, uint8_t numSlots)
             : _numSlots{numSlots}, _reg{reg}, _windowHandler{windowHandler}
         {
         }
@@ -320,30 +224,26 @@ namespace hf
         */
         int range()
         {
-            byte readPtr = _reg->read(6U);
-            byte writePtr = _reg->read(4U);
+            uint8_t readPtr = _reg->read(6U);
+            uint8_t writePtr = _reg->read(4U);
             return writePtr - readPtr;
         }
 
         template <typename sampleInt>
         sampleInt burstRead(sampleInt slot)
         {
-            byte longArr[4];
-
             bool ecg = (slot > 2) ? true : false;
 
-            // longArr[3] = 0;
-            // longArr[2] = Wire.read();
-            // longArr[1] = Wire.read();
-            // longArr[0] = Wire.read();
-
+            // 0x07 is fifo data, 3 slots * 3 bytes = 9 bytes
             sampleInt temp;
-            // memcpy(&temp, longArr, sizeof(temp));
-
+            void *buffer = k_malloc(sizeof(sampleInt));
+            i2c_burst_read_dt(&i2c_dt, 0x07, (int8_t*)buffer, (_numSlots * 3));
 
             if (ecg && temp & (1 << 17))
                 temp -= (1 << 18);
 
+            temp = (sampleInt)buffer;
+            // get this out of the burst read function?
             return temp = (ecg) ? (int)temp & 0x3FFFF : (unsigned int)temp & 0x7FFFF;
         }
 
@@ -382,10 +282,14 @@ namespace hf
                 // available = num samples * num devices * bits per sample
                 int available = fifoRange * _numSlots * 3;
 
+                // // called target_driver_register in newer verison (available for nano?)
+                // i2c_slave_driver_register(i2c_dt);
+                
                 // // reimplement reg map
-                // Wire.beginTransmission(I2C_ADDRESS);
-                // Wire.write(7U); // queue bytes to fifo data 0x07
-                // Wire.endTransmission();
+                // // Wire.beginTransmission(I2C_ADDRESS);
+                // // Wire.write(7U); // queue bytes to fifo data 0x07
+                // // Wire.endTransmission();
+                
 
                 while (available > 0)
                 {
@@ -396,8 +300,8 @@ namespace hf
                     // bytes * slots
                     if (readBytes > 32)
                         readBytes = (32 - (32 % (3 * _numSlots)));
+                    
                     available -= readBytes;
-
                     // Wire.requestFrom(I2C_ADDRESS, readBytes);
 
                     while (readBytes > 0)
@@ -414,7 +318,7 @@ namespace hf
     {
 
     protected:
-        byte _numSlots;
+        uint8_t _numSlots;
         MaxReg *_reg;
         MaxFifo *_fifo;
 
@@ -422,7 +326,7 @@ namespace hf
         WindowHandler *_windowHandler;
 
     public:
-        BpmSensor(WindowHandler *windowHandler, byte numSlots)
+        BpmSensor(WindowHandler *windowHandler, uint8_t numSlots)
             : _numSlots{numSlots}, _windowHandler{windowHandler}
         {
             _reg = new MaxReg(SLOT_COUNT);
