@@ -1,10 +1,7 @@
 #include <zephyr.h>
 #include <sys/printk.h>
 #include <string.h>
-#include <usb/usb_device.h>
-#include <drivers/uart.h>
 #include <drivers/i2c.h>
-// #include "bpmSensor.hpp"
 
 #if DT_NODE_HAS_STATUS(DT_ALIAS(sercom_4), okay) \
 && DT_NODE_HAS_STATUS(DT_NODELABEL(max86150), okay)

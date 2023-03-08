@@ -19,7 +19,7 @@ void config()
     i2c_reg_write_byte_dt(&i2c_dt, 0x08, 0x1F);
 
     /* slot 1 = ppg(ir), slot 2 = ppg(red), slot 3 = ecg */
-    i2c_reg_write_byte_dt(&i2c_dt, 9U, 0x21); // slot 1 and 2
+    i2c_reg_write_byte_dt(&i2c_dt, 9U, 0x02); 
     // write(10U, 0x09);
 
     // // PPG config (protocentral 0xD1 for Config1, maxim 0xD3) 0xD7 us: adc range, sample rate=200/s, led pulse width
@@ -57,9 +57,9 @@ void config()
     // // 0x14 = 'led range?' = led current (50 mA = 0x00)
     i2c_reg_write_byte_dt(&i2c_dt, 0x14, 0x00);
 
-    i2c_reg_write_byte_dt(&i2c_dt, 0x04, 0);
-    i2c_reg_write_byte_dt(&i2c_dt, 0x05, 0);
-    i2c_reg_write_byte_dt(&i2c_dt, 0x06, 0);
+    // i2c_reg_write_byte_dt(&i2c_dt, 0x04, 0);
+    // i2c_reg_write_byte_dt(&i2c_dt, 0x05, 0);
+    // i2c_reg_write_byte_dt(&i2c_dt, 0x06, 0);
 
     printk("PPG Configuration: Complete\n");
     printk("FIFO Configuration: Complete\n");
@@ -74,7 +74,7 @@ uint8_t range()
     return writePtr - readPtr;
 }
 
-void sample()
+void sample(uint32_t val)
 {
     // uint8_t fifoRange = range();
     // printk("%d", fifoRange);
@@ -114,6 +114,7 @@ void sample()
     memcpy(&temp, retVal, sizeof(temp));
     printk("%d\n", temp);
 
+    val = &temp;
     return;
 }
 

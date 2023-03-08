@@ -6,7 +6,7 @@ typedef long int ecgInt;
 #define DISABLED -3
 
 #define I2C_ADDRESS 94
-#define WINDOW_LENGTH 410
+#define WINDOW_LENGTH 4100
 #define SLOT_COUNT 3
 #define BUFFER_LENGTH 32
 
