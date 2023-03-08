@@ -6,17 +6,16 @@
 
 // max https://datasheets.maximintegrated.com/en/ds/MAX86150.pdf
 
-hf::WindowHandler *windowHandler;
-hf::BpmSensor *bpmSensor;
-hf::BpmWiFi *bpmWiFi;
+// bunga bunga
+static hf::BpmWiFi bpmWiFi(SSID, PASS);
+static hf::MaxReg maxReg(SLOT_COUNT, I2C_ADDRESS);
+static hf::WindowHandler windowHandler(&bpmWiFi, SLOT_COUNT, true);
+static hf::MaxFifo maxFifo(&reg, &windowHandler);
+static hf::BpmSensor bpmSensor(&bpmWiFi, &windowHandler, SLOT_COUNT);
 
 void setup()
 {
-    bpmWiFi = new hf::BpmWiFi(SSID, PASS);
     // bpmWiFi->initWiFi(true);
-
-    windowHandler = new hf::WindowHandler(bpmWiFi, SLOT_COUNT, false);
-    bpmSensor = new hf::BpmSensor(bpmWiFi, windowHandler, SLOT_COUNT);
 
     Serial.begin(115200);
     Wire.begin();
@@ -24,7 +23,7 @@ void setup()
     // Wire.setClock(100000);
     delay(10);
 
-    bpmSensor->init();
+    bpmSensor.init();
 
     // loop until serial connection opens - diagnostic
     while (!Serial)
@@ -36,6 +35,6 @@ void setup()
 
 void loop()
 {
-    bpmSensor->sample();
+    bpmSensor.sample();
     
 }

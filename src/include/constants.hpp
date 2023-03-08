@@ -1,10 +1,13 @@
+#ifndef HF_CONST
+#define HF_CONST
+
 typedef unsigned long int ppgInt;
 typedef long int ecgInt;
 
 #define DISABLED -3
 
 #define I2C_ADDRESS 94
-#define WINDOW_LENGTH 410
+#define WINDOW_LENGTH 2000
 #define SLOT_COUNT 3
 #define BUFFER_LENGTH 32
 
@@ -15,3 +18,5 @@ typedef long int ecgInt;
 #define PPG_SLOT0 1
 #define PPG_SLOT1 2
 #define ECG_SLOT  3
+
+#endif

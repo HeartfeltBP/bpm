@@ -4,7 +4,6 @@
 #include <Wire.h>
 #include <Arduino.h>
 
-#include "max_o2_algorithm.h"
 #include "constants.hpp"
 #include "bpmWiFi.hpp"
 #include "utils.hpp"
@@ -20,7 +19,7 @@ namespace hf
         int _numSlots;
 
     public:
-        MaxReg(byte numSlots = 1, byte i2cAddress = 0x5E)
+        MaxReg(byte numSlots = SLOT_COUNT, byte i2cAddress = 0x5E)
             : _i2cAddress{i2cAddress}, _numSlots{numSlots} {}
 
         void write(byte reg, byte value)
@@ -185,9 +184,9 @@ namespace hf
 
         bool _serial;
 
-        ppgInt _ppgWindow0;
-        ppgInt _ppgWindow1;
-        ecgInt _ecgWindow;
+        ppgInt *_ppgWindow0;
+        ppgInt *_ppgWindow1;
+        ecgInt *_ecgWindow;
 
         int _ppg0i = 0;
         int _ppg1i = 0;
@@ -203,21 +202,23 @@ namespace hf
             // slot 1 = ppg, slot 2 = ppg, slot 3 = ecg
             if (numSlots >= 1)
             {
-                _ppgWindow0 = new ppgInt[WINDOW_LENGTH];
+                ppgInt arr0[WINDOW_LENGTH];
+                _ppgWindow0 = arr0;
 
                 if (numSlots >= 2)
                 {
-                    _ppgWindow1 = new ppgInt[WINDOW_LENGTH];
+                    ppgInt arr1[WINDOW_LENGTH];
+                    _ppgWindow1 = arr1;
 
                     if (numSlots >= 3)
                     {
-                        _ecgWindow = new ecgInt[WINDOW_LENGTH];
+                        ecgInt arr2[WINDOW_LENGTH];
+                        _ecgWindow = arr2;
                     }
                 }
             }
             
         }
-        
 
         bool isEnabled(int slot)
         {
@@ -243,7 +244,7 @@ namespace hf
                     //     Serial.print("hooray"); Serial.println(1);
                     // }
                     // _wifi->txWindow(_ppgWindow0, PPG_SLOT0);
-                    // _ppg0i = 0;
+                    _ppg0i = 0;
                 }
                 break;
             case PPG_SLOT1:
@@ -258,7 +259,7 @@ namespace hf
                     //     // _wifi->txWindow(_ppgWindow1, PPG_SLOT1);
                     //     Serial.print("hooray"); Serial.println(2);
                     // }
-                    // _ppg1i = 0;
+                    _ppg1i = 0;
                 }
                 break;
             case ECG_SLOT:
@@ -283,15 +284,6 @@ namespace hf
                 break;
             }
         }
-
-        int calculateBloodOx() {
-            int8_t validO2, validHr;
-            int32_t retValO2, retValHr;
-
-            maxim_heart_rate_and_oxygen_saturation(_ppgWindow0, (int32_t)_ppg0i, _ppgWindow1, &retValO2, &validO2, &retValHr, &validHr);
-            Serial.print("HR: "); Serial.println(retValHr);
-            Serial.print("O2: "); Serial.println(retValO2);
-        }
     };
 
     // TODO: Add interrupt handling
@@ -305,7 +297,7 @@ namespace hf
         WindowHandler *_windowHandler;
 
     public:
-        MaxFifo(MaxReg *reg, WindowHandler *windowHandler, byte numSlots)
+        MaxFifo(MaxReg *reg, WindowHandler *windowHandler, byte numSlots = SLOT_COUNT)
             : _numSlots{numSlots}, _reg{reg}, _windowHandler{windowHandler}
         {
         }
@@ -431,11 +423,18 @@ namespace hf
         WindowHandler *_windowHandler;
 
     public:
-        BpmSensor(BpmWiFi *wifi, WindowHandler *windowHandler, byte numSlots)
-            : _numSlots{numSlots}, _wifi{wifi}, _windowHandler{windowHandler}
+        // BpmSensor(BpmWiFi *wifi, WindowHandler *windowHandler, byte numSlots)
+        //     : _numSlots{numSlots}, _wifi{wifi}, _windowHandler{windowHandler}
+        // {
+        //     _reg = new MaxReg(SLOT_COUNT);
+        //     _fifo = new MaxFifo(_reg, windowHandler, numSlots);
+        // }
+
+        BpmSensor(BpmWiFi *wifi, WindowHandler *windowHandler, byte numSlots, MaxReg reg, MaxFifo fifo)
+            : _numSlots{numSlots}, _wifi{wifi}, _windowHandler{windowHandler}, _reg{reg}, _fifo{fifo}
         {
-            _reg = new MaxReg(SLOT_COUNT);
-            _fifo = new MaxFifo(_reg, windowHandler, numSlots);
+            _reg = reg;
+            _fifo = fifo;
         }
 
         void init()
