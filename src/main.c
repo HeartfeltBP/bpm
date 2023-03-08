@@ -3,11 +3,13 @@
 #include <string.h>
 #include <usb/usb_device.h>
 #include <drivers/uart.h>
-#include <drivers/i2c.h>
-#include "bpmSensor.hpp"
+
+#include "bpmSensor.h"
 
 int main() 
 {
+	config();
+	
 	const struct device *usb_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 	uint32_t dtr = 0;
 
@@ -22,7 +24,8 @@ int main()
 	}
 
 	for(int i = 0; i < 1000; i++) {
-		printk("Value: %d\n", i);
+		sample();
+		// printk("Value: %d\n", i);
 		k_msleep(1000);
 	}
 

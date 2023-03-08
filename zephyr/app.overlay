@@ -13,12 +13,10 @@
 };
 
 &sercom4 {
-    max86150: max86150@94 {
+    max86150: max86150@5e {
         compatible = "atmel";
         status = "okay";
-        reg = <94>;
+        reg = <0x5e>;
         label="MAX86150";
-        interrupts = < 0xd 0x0 >;
-        clocks = < &gclk 0x18 >, < &pm 0x20 0x6 >;
     };
 };
