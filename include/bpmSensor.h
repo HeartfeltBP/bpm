@@ -143,7 +143,7 @@ int sample(uint32_t val)
                         ecgVal -= (1 << 18);
 
                     ecgVal &= 0x3FFFF;
-                    // printk("%d:%l\n", i, ecgVal);
+                    printk("%d:%ld\n", i, ecgVal);
                 }
                 else
                 {
@@ -152,11 +152,11 @@ int sample(uint32_t val)
 
                     if ((i % 2) == 0)
                     {
-                        // printk("%d:%l\n", i, ppgVal);
+                        printk("%d:%lu\n", i, ppgVal);
                     }
                     else
                     {
-                        // printk("%d:%l\n", i, ppgVal);
+                        printk("%d:%lu\n", i, ppgVal);
                     }
                 }
             }
