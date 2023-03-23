@@ -9,6 +9,7 @@ typedef long int ecgInt;
 #define WINDOW_LENGTH 4100
 #define SLOT_COUNT 3
 #define BUFFER_LENGTH 32
+#define SAMPLE_INT_SIZE 4
 
 // PPG & ECG SLOTS
 // CUR CODE IS BASED OFF THIS SLOT STRUCTURE
@@ -17,3 +18,5 @@ typedef long int ecgInt;
 #define PPG_SLOT0 1
 #define PPG_SLOT1 2
 #define ECG_SLOT  3
+
+#define ADDR_FIFO_DATA 7U

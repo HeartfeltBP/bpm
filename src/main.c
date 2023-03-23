@@ -3,17 +3,20 @@
 #include <string.h>
 #include <usb/usb_device.h>
 #include <drivers/uart.h>
-
+#include <random/rand32.h>
 #include "bpmSensor.h"
 
 int main() 
 {
-	config();
 
-	ppgInt arr0[WINDOW_LENGTH];
-	ppgInt arr1[WINDOW_LENGTH];
-	ecgInt arr2[WINDOW_LENGTH];
-	ecgInt *arr3 = k_malloc(sizeof(ecgInt) * WINDOW_LENGTH);
+	// ppgInt arr0[WINDOW_LENGTH];
+	// ppgInt arr1[WINDOW_LENGTH];
+	// ecgInt arr2[WINDOW_LENGTH];
+
+	// ppgInt *Ar = k_malloc(4 * WINDOW_LENGTH);
+	// ppgInt *Arr = k_malloc(4 * WINDOW_LENGTH);
+	// ecgInt *A = k_malloc(4 * WINDOW_LENGTH);
+	// ecgInt *arr3 = k_malloc(sizeof(ecgInt) * WINDOW_LENGTH);
 
 	const struct device *usb_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_console));
 	uint32_t dtr = 0;
@@ -28,17 +31,15 @@ int main()
 		k_sleep(K_MSEC(100));
 	}
 
-	for(int i = 0; i < WINDOW_LENGTH; i++) {
-		uint32_t val = -1;
-		sample(val);
-		
-		arr0[i] = val;
-		arr1[i] = val;
-		arr2[i] = val;
-		arr3[i] = val;
+	config();
+	k_msleep(10);
 
-		printk("Value: %d\n", val);
-		k_msleep(500);
+	uint32_t val = -1;
+	while(1) {
+		sample(val);
+		// if(rng) {
+		// 	printk("ITER: %d, RANGE: %d, VALUE: %d\n", i, rng, val);
+		// }
 	}
 
 	return 0;

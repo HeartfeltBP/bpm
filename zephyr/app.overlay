@@ -12,9 +12,9 @@
     };
 };
 
-&sercom4 {
+&sercom2 {
     max86150: max86150@5e {
-        compatible = "atmel";
+        compatible = "maxim";
         status = "okay";
         reg = <0x5e>;
         label="MAX86150";

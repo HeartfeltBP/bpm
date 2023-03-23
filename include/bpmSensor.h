@@ -7,59 +7,91 @@
 #include "constants.h"
 #include "i2c.h"
 
-void config()
+int clear_fifo()
 {
-    // sys control - reset, enable, fifo config
-    // write(0x02, 0x80);
-    i2c_reg_write_byte_dt(&i2c_dt, 0x0D, 0x01);
+    if (i2c_reg_write_byte_dt(&i2c_dt, 0x04, 0))
+        return -EIO;
+    if (i2c_reg_write_byte_dt(&i2c_dt, 0x05, 0))
+        return -EIO;
+    if (i2c_reg_write_byte_dt(&i2c_dt, 0x06, 0))
+        return -EIO;
+}
 
-    i2c_reg_write_byte_dt(&i2c_dt, 0x0D, 0x01);
-    i2c_reg_write_byte_dt(&i2c_dt, 0x0D, 0x04);
+int config()
+{
+    // if(!i2c_is_ready_dt(&i2c_dt)) {
+    //     printk("I2C not READY - EIO");
+    //     return -EIO;
+    // }
+
+    // sys control - reset, enable, fifo config
+    // if (i2c_reg_write_byte_dt(&i2c_dt, 0x02, 0x80))
+    //     return -EIO;
+    if (i2c_reg_write_byte_dt(&i2c_dt, 0x0D, 0x01))
+        return -EIO;
+    if (i2c_reg_write_byte_dt(&i2c_dt, 0x0D, 0x01))
+        return -EIO;
+    if (i2c_reg_write_byte_dt(&i2c_dt, 0x0D, 0x04))
+        return -EIO;
     // write(0x08, 0x7F);
-    i2c_reg_write_byte_dt(&i2c_dt, 0x08, 0x1F);
+    if (i2c_reg_write_byte_dt(&i2c_dt, 0x08, 0x1F))
+        return -EIO;
 
     /* slot 1 = ppg(ir), slot 2 = ppg(red), slot 3 = ecg */
-    i2c_reg_write_byte_dt(&i2c_dt, 9U, 0x02); 
-    // write(10U, 0x09);
+    if (i2c_reg_write_byte_dt(&i2c_dt, 9U, 0x21))
+        return -EIO;
 
     // // PPG config (protocentral 0xD1 for Config1, maxim 0xD3) 0xD7 us: adc range, sample rate=200/s, led pulse width
-    i2c_reg_write_byte_dt(&i2c_dt, 14U, 0xD7);
+    if (i2c_reg_write_byte_dt(&i2c_dt, 14U, 0xD7))
+        return -EIO;
     // write(14U, 0xEB);
     // PPG sample averging
-    i2c_reg_write_byte_dt(&i2c_dt, 15U, 0x00);
+    if (i2c_reg_write_byte_dt(&i2c_dt, 15U, 0x00))
+        return -EIO;
 
     // prox interrupt threshold
-    i2c_reg_write_byte_dt(&i2c_dt, 16U, 0x18);
+    if (i2c_reg_write_byte_dt(&i2c_dt, 16U, 0x18))
+        return -EIO;
 
     // set led pulse amplitudes
-    i2c_reg_write_byte_dt(&i2c_dt, 17U, 0xFF);
-    i2c_reg_write_byte_dt(&i2c_dt, 18U, 0xFF);
+    if (i2c_reg_write_byte_dt(&i2c_dt, 17U, 0x55))
+        return -EIO;
+    if (i2c_reg_write_byte_dt(&i2c_dt, 18U, 0x55))
+        return -EIO;
 
     if (SLOT_COUNT > 2)
     {
         // ecg specific settings
-        i2c_reg_write_byte_dt(&i2c_dt, 10U, 0x09);
+        // slot 3 for ecg
+        if (i2c_reg_write_byte_dt(&i2c_dt, 10U, 0x09))
+            return -EIO;
         // set ECG sampling rate = 200Hz
-        i2c_reg_write_byte_dt(&i2c_dt, 0x3C, 0x03);
+        if (i2c_reg_write_byte_dt(&i2c_dt, 0x3C, 0x03))
+            return -EIO;
         // // set ECG IA gain: 9.5; PGA gain: 8 (idk what this means)
-        i2c_reg_write_byte_dt(&i2c_dt, 0x3E, 0x0D);
+        if (i2c_reg_write_byte_dt(&i2c_dt, 0x3E, 0x0D))
+            return -EIO;
 
         // AFE config
-        i2c_reg_write_byte_dt(&i2c_dt, 0xFF, 0x54);
-        i2c_reg_write_byte_dt(&i2c_dt, 0xFF, 0x4D);
-        i2c_reg_write_byte_dt(&i2c_dt, 0xCE, 0x0A);
-        i2c_reg_write_byte_dt(&i2c_dt, 0xCF, 0x18);
-        i2c_reg_write_byte_dt(&i2c_dt, 0xFF, 0x00);
+        if (i2c_reg_write_byte_dt(&i2c_dt, 0xFF, 0x54))
+            return -EIO;
+        if (i2c_reg_write_byte_dt(&i2c_dt, 0xFF, 0x4D))
+            return -EIO;
+        if (i2c_reg_write_byte_dt(&i2c_dt, 0xCE, 0x0A))
+            return -EIO;
+        if (i2c_reg_write_byte_dt(&i2c_dt, 0xCF, 0x18))
+            return -EIO;
+        if (i2c_reg_write_byte_dt(&i2c_dt, 0xFF, 0x00))
+            return -EIO;
 
         printk("ECG Configuration: Complete\n");
     }
 
     // // 0x14 = 'led range?' = led current (50 mA = 0x00)
-    i2c_reg_write_byte_dt(&i2c_dt, 0x14, 0x00);
+    if (i2c_reg_write_byte_dt(&i2c_dt, 0x14, 0x00))
+        return -EIO;
 
-    // i2c_reg_write_byte_dt(&i2c_dt, 0x04, 0);
-    // i2c_reg_write_byte_dt(&i2c_dt, 0x05, 0);
-    // i2c_reg_write_byte_dt(&i2c_dt, 0x06, 0);
+    if (clear_fifo()) return -EIO;
 
     printk("PPG Configuration: Complete\n");
     printk("FIFO Configuration: Complete\n");
@@ -68,54 +100,91 @@ void config()
 uint8_t range()
 {
     uint8_t readPtr, writePtr;
-    i2c_reg_read_byte_dt(&i2c_dt, 6U, &readPtr);
-    i2c_reg_read_byte_dt(&i2c_dt, 4U, &writePtr);
+    if (i2c_reg_read_byte_dt(&i2c_dt, 6U, &readPtr))
+        return -EIO;
+    if (i2c_reg_read_byte_dt(&i2c_dt, 4U, &writePtr))
+        return -EIO;
 
     return writePtr - readPtr;
 }
 
-void sample(uint32_t val)
+int sample(uint32_t val)
 {
-    // uint8_t fifoRange = range();
-    // printk("%d", fifoRange);
+    uint8_t fifoRange = range();
 
-    // if (fifoRange != 0)
-    // {
-    //     if (fifoRange < 0)
-    //         fifoRange += 32;
-        
-    //     int available = fifoRange * SLOT_COUNT * 3;
-    //     // i2c_reg_write_byte_dt(&i2c_dt, 7U, NULL);
+    if (fifoRange != 0)
+    {
+        if (fifoRange < 0)
+            fifoRange += 32;
 
-    //     while (available > 0)
-    //     {
-    //         int readBytes = available;
+        int available = fifoRange * SLOT_COUNT * 3;
 
-    //         if (readBytes > 32)
-    //             readBytes = (32 - (32 % (3 * SLOT_COUNT)));
+        printk("[%d]\n", fifoRange);
+        while (available > 0)
+        {
+            // add ovf read for repeated starts
+            int readBytes = available;
 
-    //         available -= readBytes;
+            if (readBytes > 32)
+                readBytes = (32 - (32 % (3 * SLOT_COUNT)));
 
-    //         uint8_t retVal[SLOT_COUNT];
-    //         i2c_burst_read_dt(&i2c_dt, 7U, retVal, SLOT_COUNT * 3);
-    //         readBytes -= SLOT_COUNT * 3;
+            uint8_t buffer[SLOT_COUNT][SAMPLE_INT_SIZE];
 
-    //         uint32_t temp; // add ecg condition
-    //         memcpy(&temp, retVal, sizeof(temp));
+            for (int i = 1; readBytes > 0; readBytes -= (SLOT_COUNT * 3), i++)
+            {
+                int ret = i2c_burst_read_dt(&i2c_dt, 7U, buffer[i], SAMPLE_INT_SIZE);
 
-    //         printk("%d\n", temp);
-    //     }
-    // }
+                if ((i % 3) == 0)
+                {
+                    ecgInt ecgVal;
+                    memcpy(&ecgVal, buffer[i], SAMPLE_INT_SIZE);
 
-    uint8_t retVal[SLOT_COUNT];
-    i2c_burst_read_dt(&i2c_dt, 7U, retVal, SLOT_COUNT * 3);
+                    if (ecgVal & (1 << 17))
+                        ecgVal -= (1 << 18);
 
-    uint32_t temp; // add ecg condition
-    memcpy(&temp, retVal, sizeof(temp));
-    printk("%d\n", temp);
+                    ecgVal &= 0x3FFFF;
+                    // printk("%d:%l\n", i, ecgVal);
+                }
+                else
+                {
+                    ppgInt ppgVal;
+                    memcpy(&ppgVal, buffer[i], SAMPLE_INT_SIZE);
 
-    val = &temp;
-    return;
+                    if ((i % 2) == 0)
+                    {
+                        // printk("%d:%l\n", i, ppgVal);
+                    }
+                    else
+                    {
+                        // printk("%d:%l\n", i, ppgVal);
+                    }
+                }
+            }
+
+            // uint32_t view;
+            // view = buffer[0] << 16 | (buffer[1] << 8) | (buffer[2]);
+            // printk("VIEW0: %d\n", view);
+
+            // view = buffer[3] << 16 | (buffer[4] << 8) | (buffer[5]);
+            // printk("VIEW1: %d\n", view);
+
+            // view = buffer[6] << 16 | (buffer[7] << 8) | (buffer[8]);
+            // printk("VIEW2: %d\n", view);
+            // printk("{0: %d}\n", temp0);
+            // printk("{1: %d}\n", temp1);
+            // printk("{2: %d}\n", temp2);
+
+            // printk("%d,%d,%d\n", temp0, temp1, temp2);
+
+            // printk("RET: %d\n", ret);
+            val = -69;
+
+            // fifoRange = range();
+            // printk("[++%d\n]", fifoRange);
+            // k_msleep(10);
+        }
+    }
+    return 0;
 }
 
 #endif // HF_BPM_MAX
