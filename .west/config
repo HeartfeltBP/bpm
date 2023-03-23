@@ -1,4 +1,0 @@
-[manifest]
-path = zephyr/manifest-tmp
-file = west.yml
-
