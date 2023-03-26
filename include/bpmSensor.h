@@ -167,6 +167,7 @@ namespace hf
             } else {
                 *iter++;
             }
+            return 0;
         }
         template <typename sampleInt>
         int pushSample(byte slot, sampleInt sample)
@@ -295,6 +296,7 @@ namespace hf
 
                 if(_available > 0) {
                     if (sample()) return 1;
+                    _readBytes -= (3 * SLOT_COUNT);
                 }
             }
 
@@ -316,9 +318,14 @@ namespace hf
                 // bytes * slots
                 if (_readBytes > 32)
                     _readBytes = (32 - (32 % (3 * SLOT_COUNT)));
-                
-                if (read(_readBytes)) return 1;
-                _available -= _readBytes;
+
+                _available -= _readBytes;            
+
+                while(_readBytes > 0) {
+                    if (read(_readBytes)) return 1;
+                    else _readBytes -= SLOT_COUNT * 3;
+                }
+
             }
         }
     };
