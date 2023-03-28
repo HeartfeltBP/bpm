@@ -31,16 +31,24 @@ int main()
 		k_sleep(K_MSEC(100));
 	}
 
-	config();
-	k_msleep(10);
+	if(config()) printk("X");
 
+	k_msleep(100);
 	uint32_t val = -1;
+
+	printk("Sampling starting in 1 second");
+	k_msleep(1000);
 	while(1) {
-		sample(val);
+	
+		if(sample(val)) {
+			k_msleep(10);
+		} else {
+			printk("!");
+			k_msleep(2000);
+		}
 		// if(rng) {
 		// 	printk("ITER: %d, RANGE: %d, VALUE: %d\n", i, rng, val);
 		// }
 	}
-
 	return 0;
 }

@@ -15,9 +15,9 @@ BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_NODELABEL(max86150), maxim));
 
 static const struct i2c_dt_spec i2c_dt = I2C_DT_SPEC_GET(I2C0_NODE);
 
-static ppgInt Arr0[WINDOW_LENGTH];
-static ppgInt Arr1[WINDOW_LENGTH];
-static ecgInt Arr2[WINDOW_LENGTH];
+// static ppgInt Arr0[WINDOW_LENGTH];
+// static ppgInt Arr1[WINDOW_LENGTH];
+// static ecgInt Arr2[WINDOW_LENGTH];
 
 // namespace hf {
 

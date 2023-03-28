@@ -15,18 +15,23 @@ int clear_fifo()
         return -EIO;
     if (i2c_reg_write_byte_dt(&i2c_dt, 0x06, 0))
         return -EIO;
+        
+    return 0;
 }
 
 int config()
 {
-    // if(!i2c_is_ready_dt(&i2c_dt)) {
+    // if(i2c_(&i2c_dt)) {
     //     printk("I2C not READY - EIO");
     //     return -EIO;
     // }
 
+    int addr = i2c_dt.addr;
+    int bus = i2c_dt.bus;
+
     // sys control - reset, enable, fifo config
-    // if (i2c_reg_write_byte_dt(&i2c_dt, 0x02, 0x80))
-    //     return -EIO;
+    if (i2c_reg_write_byte_dt(&i2c_dt, 0x02, 0x80))
+        return -EIO;
     if (i2c_reg_write_byte_dt(&i2c_dt, 0x0D, 0x01))
         return -EIO;
     if (i2c_reg_write_byte_dt(&i2c_dt, 0x0D, 0x01))
@@ -38,8 +43,13 @@ int config()
         return -EIO;
 
     /* slot 1 = ppg(ir), slot 2 = ppg(red), slot 3 = ecg */
+    #if SLOT_COUNT >= 1
+    if (i2c_reg_write_byte_dt(&i2c_dt, 9U, 0x02))
+        return -EIO;
+    #elif SLOT_COUNT >= 2
     if (i2c_reg_write_byte_dt(&i2c_dt, 9U, 0x21))
         return -EIO;
+    #endif
 
     // // PPG config (protocentral 0xD1 for Config1, maxim 0xD3) 0xD7 us: adc range, sample rate=200/s, led pulse width
     if (i2c_reg_write_byte_dt(&i2c_dt, 14U, 0xD7))
@@ -59,8 +69,7 @@ int config()
     if (i2c_reg_write_byte_dt(&i2c_dt, 18U, 0x55))
         return -EIO;
 
-    if (SLOT_COUNT > 2)
-    {
+    #if (SLOT_COUNT > 2)
         // ecg specific settings
         // slot 3 for ecg
         if (i2c_reg_write_byte_dt(&i2c_dt, 10U, 0x09))
@@ -85,7 +94,7 @@ int config()
             return -EIO;
 
         printk("ECG Configuration: Complete\n");
-    }
+    #endif
 
     // // 0x14 = 'led range?' = led current (50 mA = 0x00)
     if (i2c_reg_write_byte_dt(&i2c_dt, 0x14, 0x00))
@@ -110,80 +119,46 @@ uint8_t range()
 
 int sample(uint32_t val)
 {
-    uint8_t fifoRange = range();
+    // uint8_t available = range();
 
-    if (fifoRange != 0)
-    {
-        if (fifoRange < 0)
-            fifoRange += 32;
+    // if (available != 0)
+    // {
+    //     if (available < 0)
+    //         available += 32;
 
-        int available = fifoRange * SLOT_COUNT * 3;
+        // for (int i = 0; i < available; i += SLOT_COUNT)
+        // {
+            // // add ovf read for repeated starts
+            // int readBytes = available;
 
-        printk("[%d]\n", fifoRange);
-        while (available > 0)
-        {
-            // add ovf read for repeated starts
-            int readBytes = available;
+            // if ((readBytes * 3) > 32)
+            //     readBytes = (32 - (32 % (3 * SLOT_COUNT)));
 
-            if (readBytes > 32)
-                readBytes = (32 - (32 % (3 * SLOT_COUNT)));
+            uint32_t ppgBuffer0;
+            // uint32_t ppgBuffer1;
+            // int32_t  ecgBuffer0;
+            uint8_t buffer[SLOT_COUNT*3];
 
-            uint8_t buffer[SLOT_COUNT][SAMPLE_INT_SIZE];
+            // int addr = 7U;
+            if(i2c_burst_read_dt(&i2c_dt, 7, buffer, SLOT_COUNT * 3)) {printk("EIO ERROR\n"); return -EIO;}
+            
+            memcpy(&ppgBuffer0, buffer, 4);
+            // ppgBuffer0 = ((buffer[0] << 16) | (buffer[1] << 8) | buffer[2]) & 0x7FFFF;
+            ppgBuffer0 &= 0x7FFFF;
+            printk("%u,\n", ppgBuffer0);
 
-            for (int i = 1; readBytes > 0; readBytes -= (SLOT_COUNT * 3), i++)
-            {
-                int ret = i2c_burst_read_dt(&i2c_dt, 7U, buffer[i], SAMPLE_INT_SIZE);
+            // memcpy(&ppgBuffer1, &buffer[3], 3U);
+            // // ppgBuffer1 = (buffer[3] | buffer[4] | buffer[5]) & 0x7FFFF;
+            // ppgBuffer1 &= 0x7FFFF;
+            // // printk("VIEW1: %u\n", ppgBuffer1);
 
-                if ((i % 3) == 0)
-                {
-                    ecgInt ecgVal;
-                    memcpy(&ecgVal, buffer[i], SAMPLE_INT_SIZE);
-
-                    if (ecgVal & (1 << 17))
-                        ecgVal -= (1 << 18);
-
-                    ecgVal &= 0x3FFFF;
-                    printk("%d:%ld\n", i, ecgVal);
-                }
-                else
-                {
-                    ppgInt ppgVal;
-                    memcpy(&ppgVal, buffer[i], SAMPLE_INT_SIZE);
-
-                    if ((i % 2) == 0)
-                    {
-                        printk("%d:%lu\n", i, ppgVal);
-                    }
-                    else
-                    {
-                        printk("%d:%lu\n", i, ppgVal);
-                    }
-                }
-            }
-
-            // uint32_t view;
-            // view = buffer[0] << 16 | (buffer[1] << 8) | (buffer[2]);
-            // printk("VIEW0: %d\n", view);
-
-            // view = buffer[3] << 16 | (buffer[4] << 8) | (buffer[5]);
-            // printk("VIEW1: %d\n", view);
-
-            // view = buffer[6] << 16 | (buffer[7] << 8) | (buffer[8]);
-            // printk("VIEW2: %d\n", view);
-            // printk("{0: %d}\n", temp0);
-            // printk("{1: %d}\n", temp1);
-            // printk("{2: %d}\n", temp2);
-
-            // printk("%d,%d,%d\n", temp0, temp1, temp2);
-
-            // printk("RET: %d\n", ret);
-            val = -69;
-
-            // fifoRange = range();
-            // printk("[++%d\n]", fifoRange);
-            // k_msleep(10);
-        }
-    }
+            // memcpy(&ppgBuffer0, &buffer[6], 3U);
+            // // int32_t ecgTemp = (buffer[6] << 16 | buffer[7] << 8 | buffer[8]);
+            // // ecgBuffer0 = ecgTemp & (1 << 17) ? ecgTemp -= (1 << 18) & 0x3FFFF : ecgTemp & 0x3FFFF;
+            // ecgBuffer0 &= 0x3FFFF;
+            // // printk("VIEW1: %d\n", ecgBuffer0);
+    //     }
+    // }
     return 0;
 }
 

@@ -7,7 +7,7 @@ typedef long int ecgInt;
 
 #define I2C_ADDRESS 94
 #define WINDOW_LENGTH 4100
-#define SLOT_COUNT 3
+#define SLOT_COUNT 1
 #define BUFFER_LENGTH 32
 #define SAMPLE_INT_SIZE 4
 
