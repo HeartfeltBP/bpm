@@ -117,10 +117,11 @@ namespace hf
 
         bool _serial;
         
-        // int _slotIterators[SLOT_COUNT] {0};
-        int _ppg0i = 0;
-        int _ppg1i = 0;
-        int _ecgi = 0;
+        int _slotIter[SLOT_COUNT] {0};
+        bool _checks[3];
+        // int _slotIter[0] = 0;
+        // int _slotIter[1 = 0;
+        // int _ecgi = 0;
 
         int _slotStatus[SLOT_COUNT] {-1};
 
@@ -160,39 +161,62 @@ namespace hf
             return ret;
         }
 
-        int handleIter(int *iter)
+        int handleIter(int slot)
         {
-            if(*iter+1 >= WINDOW_LENGTH) {
-                *iter = -1;
-            } else {
-                *iter++;
+            if(_slotIter[slot]+1 >= WINDOW_LENGTH || _slotIter[slot] == -1) 
+            {
+                Serial.println("DISABLED!");
+                _slotIter[slot] = -1;
+                return 1;
             }
+            else 
+            {
+                _slotIter[slot]++;
+            }
+
             return 0;
         }
+
         template <typename sampleInt>
-        int pushSample(byte slot, sampleInt sample)
+        bool pushSample(byte slot, sampleInt sample)
         {
+
             switch (slot)
             {
             case PPG_SLOT0:
-                _ppgWindow0[_ppg0i] = sample;
-                handleIter(&_ppg0i);
+                _ppgWindow0[_slotIter[0]] = sample;
+                _checks[0] = (handleIter(PPG_SLOT0) > 0) ? 1 : 0;
                 break;
             case PPG_SLOT1:
-                _ppgWindow1[_ppg1i] = sample;
-                handleIter(&_ppg1i);
+                _ppgWindow1[_slotIter[1]] = sample;
+                _checks[1] = (handleIter(PPG_SLOT1) > 0) ? 1 : 0;
                 break;
             case ECG_SLOT:
-                _ecgWindow[_ecgi] = sample;
-                handleIter(&_ecgi);
+                _ecgWindow[_slotIter[2]] = sample;
+                _checks[2] = (handleIter(ECG_SLOT) > 0) ? 1 : 0;
                 break;
             default:
                 Serial.println("Something went wrong?");
                 break;
             }
 
-            if(_ppg0i == -1 && _ppg1i == -1 && _ecgi == -1) {
-                _ppg0i = 0; _ppg1i = 0; _ecgi = 0;
+
+            Serial.print(_slotIter[0]); Serial.print("/"); 
+            Serial.print(_slotIter[1]); Serial.print("/"); 
+            Serial.print(_slotIter[2]); Serial.print("$:");
+            Serial.print(_checks[0]); Serial.print(_checks[1]); Serial.print(_checks[2]);
+            bool check = _checks[0] && _checks[1] && _checks[2];
+            Serial.print("="); Serial.println(check);
+            if(check) {delay(4000);}
+
+            return check;
+        }
+
+        int handleWindows()
+        {
+            Serial.println("WINDOW HANDLER INVOKED");
+            if( (_slotIter[0] == -1) && (_slotIter[1] == -1) && (_slotIter[2] == -1)) {
+                _slotIter[0] = 0; _slotIter[1] = 0; _slotIter[2] = 0;
                 return 1;
             }
             return 0;
@@ -238,19 +262,17 @@ namespace hf
         }
 
         template<typename sampleInt>
-        sampleInt burstRead(sampleInt slot)
+        sampleInt sampleRead(sampleInt temp, int slot)
         {
-            byte longArr[4];
-
+            byte buffer[4];
             bool ecg = (slot > 2) ? true : false;
 
-            longArr[3] = 0;
-            longArr[2] = Wire.read();
-            longArr[1] = Wire.read();
-            longArr[0] = Wire.read();
+            buffer[3] = 0;
+            buffer[2] = Wire.read();
+            buffer[1] = Wire.read();
+            buffer[0] = Wire.read();
 
-            sampleInt temp;
-            memcpy(&temp, longArr, sizeof(temp));
+            memcpy(&temp, buffer, sizeof(temp));
 
             if (ecg && temp & (1 << 17))
                 temp -= (1 << 18);
@@ -260,54 +282,34 @@ namespace hf
 
         int read(int readBytes)
         {
+            bool check;
+            Wire.beginTransmission(I2C_ADDRESS);
+            Wire.write(7U); // queue bytes to fifo data 0x07
+            Wire.endTransmission();
             Wire.requestFrom(I2C_ADDRESS, readBytes);
 
             for(int rB = readBytes; rB > 0; rB -= (SLOT_COUNT * 3))
             {
                 #if (SLOT_COUNT >= 1)
-                ppgInt temp = (ppgInt)burstRead(PPG_SLOT0);
-                if (_windowHandler->pushSample(PPG_SLOT0, temp)) return 1;
+                ppgInt temp = (ppgInt)sampleRead(temp, PPG_SLOT0);
+                check = _windowHandler->pushSample(PPG_SLOT0, temp);
                 #endif
                 #if (SLOT_COUNT >= 2)
-                temp = (ppgInt)burstRead(PPG_SLOT1);
-                if (_windowHandler->pushSample(PPG_SLOT1, temp)) return 1;
+                temp = (ppgInt)sampleRead(temp, PPG_SLOT1);
+                check = _windowHandler->pushSample(PPG_SLOT1, temp);
                 #endif
                 #if (SLOT_COUNT >= 3)
-                ecgInt temps = (ecgInt)burstRead(ECG_SLOT);
-                if (_windowHandler->pushSample(ECG_SLOT, temps)) return 1;
+                ecgInt temps = (ecgInt)sampleRead(temps, ECG_SLOT);
+                check = _windowHandler->pushSample(ECG_SLOT, temps);
                 #endif  
             }
-            return 0;
+
+            return check;
             // slot 1 = ppg, slot 2 = ppg, slot 3 = ecg   
-        }
-
-        int check() 
-        {
-
-            int fifoRange = range();
-            if (fifoRange != 0)
-            {
-                // wrap fifo range
-                if (fifoRange < 0)
-                    fifoRange += 32;
-
-                // available = num samples * num devices * bits per sample
-                _available = fifoRange * SLOT_COUNT * 3;
-
-                if(_available > 0) {
-                    if (sample()) return 1;
-                    _readBytes -= (3 * SLOT_COUNT);
-                }
-            }
-
         }
 
         int sample()
         {
-            // reimplement reg map
-            Wire.beginTransmission(I2C_ADDRESS);
-            Wire.write(7U); // queue bytes to fifo data 0x07
-            Wire.endTransmission();
             
             while (_available > 0)
             {
@@ -321,12 +323,38 @@ namespace hf
 
                 _available -= _readBytes;            
 
-                while(_readBytes > 0) {
-                    if (read(_readBytes)) return 1;
-                    else _readBytes -= SLOT_COUNT * 3;
+                while(_readBytes > 0) 
+                {
+                    if (read(_readBytes) > 0) {
+                        return _windowHandler->handleWindows();
+                    }
+                    _readBytes -= SLOT_COUNT * 3;
                 }
 
             }
+            return 0;
+        }
+
+        int check() 
+        {
+
+            int fifoRange = range();
+
+            if (fifoRange != 0)
+            {
+                // wrap fifo range
+                if (fifoRange < 0)
+                    fifoRange += 32;
+
+                // available = num samples * num devices * bytes per sample
+                _available = fifoRange * SLOT_COUNT * 3;
+
+                if(_available > 0) {
+                    if (sample() > 0) return 1;
+                }
+            }
+            return 0;
+
         }
     };
 
@@ -339,12 +367,9 @@ namespace hf
         WindowHandler *_windowHandler;
 
     public:
-        BpmSensor(WindowHandler *windowHandler)
-            :_windowHandler{windowHandler}
-        {
-            _reg = new MaxReg(SLOT_COUNT);
-            _fifo = new MaxFifo(_reg, windowHandler);
-        }
+        BpmSensor(MaxFifo *fifo, WindowHandler *windowHandler)
+            :_fifo{fifo}, _windowHandler{windowHandler}
+        {}
 
         void init()
         {
@@ -355,6 +380,21 @@ namespace hf
         {
             return _fifo->check();
         }
+    };
+
+    class BPM
+    {
+        protected:
+            struct opFlags {
+                bool txReady    = 0;
+                bool wiFiInit   = 0;
+                bool fifoInit   = 0;
+                bool i2cInit    = 0;
+                bool proximity  = 0;
+                bool identity   = 0;
+                bool dataFull   = 0;
+                bool error      = 0;
+            };
     };
 }
 

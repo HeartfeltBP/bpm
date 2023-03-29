@@ -9,7 +9,7 @@
 #define USER "kkharkov"
 #define PASS "Room936BungusChutts"
 
-#define URL "192.168.12.239"
+#define URL "172.20.10.6"
 #define LPORT 5173
 
 #endif

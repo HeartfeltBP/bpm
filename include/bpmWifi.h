@@ -27,11 +27,11 @@ namespace hf
 
         int connectWiFi(std::string ssid, std::string password, boolean enterprise = false)
         {
-            if (WiFi.status() == WL_NO_SHIELD)
-            {
-                Serial.println("NO SHEILD");
-                return -1;
-            }
+            // if (WiFi.status() == WL_NO_SHIELD)
+            // {
+            //     Serial.println("NO SHEILD");
+            //     return -1;
+            // }
 
             if(enterprise) {
                 Serial.println("NOT IMPLEMENTED");
@@ -128,18 +128,18 @@ namespace hf
             // Serial.println(); Serial.println();
 
             std::string postData;
-            if(type >= 0) {
-                postData.append(std::to_string(type) + std::string(",,"));
-            }
+            // paramaterize
+            // retreive from csv array index 0 = # of samples, 1 = sampling rate, 2 = type
+            postData.append("4100,200,");
             switch(type) {
                 case PPG_SLOT0:
-                    postData.append("PPG0,,");
+                    postData.append("PPG0,");
                     break;
                 case PPG_SLOT1:
-                    postData.append("PPG1,,");
+                    postData.append("PPG1,");
                     break;
                 case ECG_SLOT:
-                    postData.append("ECG,,");
+                    postData.append("ECG,");
                     break;
             }
 
@@ -148,8 +148,9 @@ namespace hf
             // sizeof(frame) / sizeof(T) do not work
             for(int i = 0; i < WINDOW_LENGTH; i++) {
                 postData.append(std::to_string(frame[i]));
-                postData.append(",");
+                if(i != WINDOW_LENGTH-1) postData.append(",");
             }
+            postData.append("\n}");
 
             _http->beginRequest();
             _http->post(jsonReciever.c_str());
@@ -160,10 +161,11 @@ namespace hf
             _http->beginBody();
 
             // Serial.println(postData.c_str());
-            // TODO: add opening and closing braces for http endpoint
             _http->print(postData.c_str());
-
             _http->endRequest();
+
+            Serial.print(_http->responseStatusCode());
+            Serial.println(_http->responseBody());
         }
 
         void getTest()
@@ -173,8 +175,8 @@ namespace hf
                 retryWiFi();
             }
             _http->get(testEndpoint.c_str());
-            // Serial.print(_http->responseStatusCode());
-            // Serial.println(_http->responseBody());
+            Serial.print(_http->responseStatusCode());
+            Serial.println(_http->responseBody());
         }
 
         bool isWiFiConnected() {
