@@ -5,6 +5,7 @@
 #include <Arduino.h>
 #include <array>
 #include "constants.h"
+#include ".env.h"
 
 namespace hf
 {
@@ -43,27 +44,21 @@ namespace hf
             Wire.endTransmission(false);
 
             Wire.requestFrom(_i2cAddress, 1);
-
-            int available = Wire.available();
-            if (available > 0)
-            {
-                int ret = Wire.read();
-                // this->_localRegi.emplace(reg_pair(reg, temp));
-                return ret;
-            }
-
-            return -1;
+            
+            int ret = Wire.read();
+            
+            return ret;
         }
 
         void config()
         {
             // sys control - reset, enable, fifo config
             // write(0x02, 0x80);
+            write(0x02, 0xFF);
             write(0x0D, 0x01);
             write(0x0D, 0x04);
             // write(0x08, 0x7F);
             write(0x08, 0x1F);
-
             /* slot 1 = ppg(ir), slot 2 = ppg(red), slot 3 = ecg */
             (SLOT_COUNT >= 1) ? write(9U, 0x21) : write(9U, 0x02); // slot 1 and 2
 
@@ -74,7 +69,7 @@ namespace hf
             write(15U, 0x00);
 
             // prox interrupt threshold
-            write(16U, 0x18);
+            write(16U, 0xFF);
 
             // set led pulse amplitudes
             write(17U, 0xFF);
@@ -105,124 +100,6 @@ namespace hf
         }
     };
 
-    class WindowHandler
-    {
-    protected:
-        unsigned int _windowLength;
-        int _numSlots;
-
-        ppgInt *_ppgWindow0;
-        ppgInt *_ppgWindow1;
-        ecgInt *_ecgWindow;
-
-        bool _serial;
-        
-        int _slotIter[SLOT_COUNT] {0};
-        bool _checks[3];
-        // int _slotIter[0] = 0;
-        // int _slotIter[1 = 0;
-        // int _ecgi = 0;
-
-        int _slotStatus[SLOT_COUNT] {-1};
-
-    public:
-        // this is pretty fucking gross
-        WindowHandler(ppgInt arr0[WINDOW_LENGTH])
-        {
-            _ppgWindow0 = arr0;
-            _slotStatus[0] = 0;
-        }
-
-        WindowHandler(ppgInt arr0[WINDOW_LENGTH], ppgInt arr1[WINDOW_LENGTH])
-        {
-            _ppgWindow0 = arr0;
-            _slotStatus[0] = 0;
-            
-            _ppgWindow1 = arr1;
-            _slotStatus[1] = 0;
-        }
-
-        WindowHandler(ppgInt arr0[WINDOW_LENGTH], ppgInt arr1[WINDOW_LENGTH], ecgInt arr2[WINDOW_LENGTH])
-        {
-            _ppgWindow0 = arr0;
-            _slotStatus[0] = 0;
-
-            _ppgWindow1 = arr1;
-            _slotStatus[1] = 0;
-
-            _ecgWindow = arr2;
-            _slotStatus[2] = 0;
-        }
-
-        bool isEnabled(int slot)
-        {
-            // will matter more once integrated into config
-            bool ret = (slot != DISABLED) ? true : false;
-            return ret;
-        }
-
-        int handleIter(int slot)
-        {
-            if(_slotIter[slot]+1 >= WINDOW_LENGTH || _slotIter[slot] == -1) 
-            {
-                Serial.println("DISABLED!");
-                _slotIter[slot] = -1;
-                return 1;
-            }
-            else 
-            {
-                _slotIter[slot]++;
-            }
-
-            return 0;
-        }
-
-        template <typename sampleInt>
-        bool pushSample(byte slot, sampleInt sample)
-        {
-
-            switch (slot)
-            {
-            case PPG_SLOT0:
-                _ppgWindow0[_slotIter[0]] = sample;
-                _checks[0] = (handleIter(PPG_SLOT0) > 0) ? 1 : 0;
-                break;
-            case PPG_SLOT1:
-                _ppgWindow1[_slotIter[1]] = sample;
-                _checks[1] = (handleIter(PPG_SLOT1) > 0) ? 1 : 0;
-                break;
-            case ECG_SLOT:
-                _ecgWindow[_slotIter[2]] = sample;
-                _checks[2] = (handleIter(ECG_SLOT) > 0) ? 1 : 0;
-                break;
-            default:
-                Serial.println("Something went wrong?");
-                break;
-            }
-
-
-            Serial.print(_slotIter[0]); Serial.print("/"); 
-            Serial.print(_slotIter[1]); Serial.print("/"); 
-            Serial.print(_slotIter[2]); Serial.print("$:");
-            Serial.print(_checks[0]); Serial.print(_checks[1]); Serial.print(_checks[2]);
-            bool check = _checks[0] && _checks[1] && _checks[2];
-            Serial.print("="); Serial.println(check);
-            if(check) {delay(4000);}
-
-            return check;
-        }
-
-        int handleWindows()
-        {
-            Serial.println("WINDOW HANDLER INVOKED");
-            if( (_slotIter[0] == -1) && (_slotIter[1] == -1) && (_slotIter[2] == -1)) {
-                _slotIter[0] = 0; _slotIter[1] = 0; _slotIter[2] = 0;
-                return 1;
-            }
-            return 0;
-        }
-    };
-    // TODO: Add interrupt handling
     class MaxFifo
     {
 
@@ -358,6 +235,120 @@ namespace hf
         }
     };
 
+    class WindowHandler
+    {
+    protected:
+        unsigned int _windowLength;
+        int _numSlots;
+
+        ppgInt *_ppgWindow0;
+        ppgInt *_ppgWindow1;
+        ecgInt *_ecgWindow;
+
+        bool _serial;
+        
+        int _slotIter[SLOT_COUNT] {0};
+        int _slotStatus[SLOT_COUNT] {-1};
+
+    public:
+        // this is pretty fucking gross
+        WindowHandler(ppgInt arr0[WINDOW_LENGTH])
+        {
+            _ppgWindow0 = arr0;
+            _slotStatus[0] = 0;
+        }
+
+        WindowHandler(ppgInt arr0[WINDOW_LENGTH], ppgInt arr1[WINDOW_LENGTH])
+        {
+            _ppgWindow0 = arr0;
+            _slotStatus[0] = 0;
+            
+            _ppgWindow1 = arr1;
+            _slotStatus[1] = 0;
+        }
+
+        WindowHandler(ppgInt arr0[WINDOW_LENGTH], ppgInt arr1[WINDOW_LENGTH], ecgInt arr2[WINDOW_LENGTH])
+        {
+            _ppgWindow0 = arr0;
+            _slotStatus[0] = 0;
+
+            _ppgWindow1 = arr1;
+            _slotStatus[1] = 0;
+
+            _ecgWindow = arr2;
+            _slotStatus[2] = 0;
+        }
+
+        bool isEnabled(int slot)
+        {
+            // will matter more once integrated into config
+            bool ret = (slot != DISABLED) ? true : false;
+            return ret;
+        }
+
+        int handleIter(int slot)
+        {
+            if(_slotIter[slot]+1 >= WINDOW_LENGTH || _slotIter[slot] == -1) 
+            {
+                Serial.println("DISABLED!");
+                _slotIter[slot] = -1;
+                return 1;
+            }
+            else 
+            {
+                _slotIter[slot]++;
+            }
+
+            return 0;
+        }
+
+        template <typename sampleInt>
+        bool pushSample(byte slot, sampleInt sample)
+        {
+
+            switch (slot)
+            {
+            case PPG_SLOT0:
+                _ppgWindow0[_slotIter[0]] = sample;
+                _slotStatus[0] = (handleIter(PPG_SLOT0) > 0) ? 1 : 0;
+                break;
+            case PPG_SLOT1:
+                _ppgWindow1[_slotIter[1]] = sample;
+                _slotStatus[1] = (handleIter(PPG_SLOT1) > 0) ? 1 : 0;
+                break;
+            case ECG_SLOT:
+                _ecgWindow[_slotIter[2]] = sample;
+                _slotStatus[2] = (handleIter(ECG_SLOT) > 0) ? 1 : 0;
+                break;
+            default:
+                Serial.println("Something went wrong?");
+                break;
+            }
+
+
+            Serial.print(_slotIter[0]); Serial.print("/"); 
+            Serial.print(_slotIter[1]); Serial.print("/"); 
+            Serial.print(_slotIter[2]); Serial.print("$:");
+            Serial.print(_slotStatus[0]); Serial.print(_slotStatus[1]); Serial.print(_slotStatus[2]);
+            bool check = _slotStatus[0] && _slotStatus[1] && _slotStatus[2];
+            Serial.print("="); Serial.println(check);
+            if(check) {delay(4000);}
+
+            return check;
+        }
+
+        int handleWindows()
+        {
+            Serial.println("WINDOW HANDLER INVOKED");
+            if( (_slotIter[0] == -1) && (_slotIter[1] == -1) && (_slotIter[2] == -1)) {
+                _slotIter[0] = 0; _slotIter[1] = 0; _slotIter[2] = 0;
+                return 1;
+            }
+            return 0;
+        }
+    };
+    // TODO: Add interrupt handling
+
     class BpmSensor
     {
 
@@ -387,14 +378,111 @@ namespace hf
         protected:
             struct opFlags {
                 bool txReady    = 0;
+                bool configured = 0;
                 bool wiFiInit   = 0;
-                bool fifoInit   = 0;
+                bool sensorInit = 0;
                 bool i2cInit    = 0;
+                bool serialInit = 0;
                 bool proximity  = 0;
                 bool identity   = 0;
                 bool dataFull   = 0;
                 bool error      = 0;
-            };
+            } _opFlags;
+
+            static ppgInt _ppgArr0[WINDOW_LENGTH];
+            static ppgInt _ppgArr1[WINDOW_LENGTH];
+            static ecgInt _ecgArr0[WINDOW_LENGTH];
+        
+            static hf::WindowHandler *_windowHandler;
+            static hf::MaxReg *_maxReg;
+            static hf::MaxFifo *_maxFifo;
+            static hf::BpmSensor *_bpmSensor;
+            static hf::BpmWiFi *_bpmWiFi;
+        
+        public:
+            BPM()
+            {
+                *_maxReg = MaxReg();
+                *_maxFifo = MaxFifo(_maxReg, _windowHandler);
+                *_windowHandler = WindowHandler(_ppgArr0, _ppgArr1, _ecgArr0);
+                *_bpmSensor = BpmSensor(_maxFifo, _windowHandler);
+                *_bpmWiFi = BpmWiFi(URL, SSID, PASS);
+            }
+
+            int serialInit()
+            {
+                Serial.begin(115200);
+                _opFlags.serialInit = 1;
+            }
+
+            // debug
+            int waitUntilSerial()
+            {
+                while (!Serial)
+                    delay(1);
+            }
+
+            int serialInitWait() {
+                serialInit();
+                waitUntilSerial();
+            }
+
+            int i2cInit() 
+            {
+                Wire.begin();
+                Wire.setClock(400000);
+
+                _opFlags.i2cInit = 1;
+            }
+
+            int sensorInit() {
+                _bpmSensor->init();
+
+                _opFlags.sensorInit = 1;
+            }
+
+            int initWiFi()
+            {
+                _bpmWiFi->initWiFi();
+                if(_bpmWiFi->isWiFiConnected() && _bpmWiFi->isClientConnected()) {
+                    _opFlags.wiFiInit = 1;
+                }
+            }
+
+            int config(bool debug)
+            {
+                if(_opFlags.configured) {
+                    return 2;
+                }
+
+                if(!_opFlags.serialInit && debug)
+                {
+                    serialInitWait();
+                } 
+                else if (!debug)
+                {
+                    serialInit();
+                    delay(100);
+                }
+                // 
+                while(!_opFlags.i2cInit) {
+                    i2cInit();
+                    delay(100);
+                }
+
+                while(!_opFlags.sensorInit) {
+                    sensorInit();
+                    delay(100);
+                }
+
+                _opFlags.configured = 1;
+            }
+
+            int mainLoop() 
+            {
+                if(!_opFlags.sensorInit)
+                _bpmSensor->sample()
+            }
     };
 }
 
