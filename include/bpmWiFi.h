@@ -2,6 +2,8 @@
 #include <WiFi.h>
 #include <HttpClient.h>
 #include <string>
+#include <random>
+
 #include ".env.h"
 
 namespace hf
@@ -138,7 +140,7 @@ namespace hf
                 case PPG_SLOT1:
                     postData.append("PPG1,");
                     break;
-                case ECG_SLOT:
+                case ECG_SLOT0:
                     postData.append("ECG,");
                     break;
             }
@@ -201,6 +203,17 @@ namespace hf
                 _client.stop();
                 connectClient(URL);
             }
+        }
+
+        // TODO: IMPLEMENT IDENTITY CONFIRMATION
+        int sendDeviceId()
+        {
+
+        }
+
+        int identityConfig()
+        {
+
         }
     };
 }
