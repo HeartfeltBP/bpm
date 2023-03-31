@@ -6,7 +6,7 @@
 // #define DEV_NANO33IOT   false
 
 // DEBUG: enables serial output 
-#define DEBUG           false
+#define DEBUG           true
 #define TB              false
 
 #if DEBUG

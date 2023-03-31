@@ -171,7 +171,7 @@ namespace hf
             
             int statusCode = _http->responseStatusCode();
             #if (DEBUG)
-            Serial.print(statusCode));
+            Serial.print(statusCode);
             Serial.println(_http->responseBody());
             #else
             _http->responseBody();
@@ -196,7 +196,7 @@ namespace hf
 
             int statusCode = _http->responseStatusCode();
             #if (DEBUG)
-            Serial.print(statusCode));
+            Serial.print(statusCode);
             Serial.println(_http->responseBody());
             #else
             _http->responseBody();
