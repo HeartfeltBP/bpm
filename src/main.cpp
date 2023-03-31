@@ -13,8 +13,10 @@ void setup() {
       return;
     }
 
-    loadPrinter(8, *"*", 500);
-    Serial.println("Setup Complete");
+    #if (DEBUG)
+    dotPrinter(8, *"*", 500);
+    Serial.println("[!] Setup Complete");
+    #endif
 
     delay(1000);
 }
@@ -24,7 +26,10 @@ void loop() {
   while(bpm.enabled()) {
     if(bpm.sampleTx() > 0)
     {
-      Serial.println("TX");
+      #if (DEBUG)
+      bpm.printWindows();
+      #endif
+      // Serial.println("TX");
     }
   }
 }

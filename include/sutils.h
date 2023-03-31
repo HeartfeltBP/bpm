@@ -4,13 +4,13 @@
 
 #include <Arduino.h>
 
-void loadPrinter(int dotCount, char symbol, int printDelay) 
+void dotPrinter(int dotCount, char symbol, int printDelay) 
 {
     for(int i = 0; i < dotCount; i++) {
         Serial.print(symbol);
         delay(printDelay);
-        Serial.println("");
     }
+    Serial.println("");
 }
 
 #endif

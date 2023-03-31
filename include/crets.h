@@ -14,7 +14,6 @@
 
 // error return values
 #define ERROR -1
-#define EIO   -5
 #define NO_WIFI -6
 #define NOT_SET -7
 #define FAILED -8

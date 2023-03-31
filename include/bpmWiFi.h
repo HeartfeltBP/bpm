@@ -2,7 +2,6 @@
 #include <WiFi.h>
 #include <HttpClient.h>
 #include <string>
-#include <random>
 
 #include ".env.h"
 
@@ -29,14 +28,10 @@ namespace hf
 
         int connectWiFi(std::string ssid, std::string password, boolean enterprise = false)
         {
-            // if (WiFi.status() == WL_NO_SHIELD)
-            // {
-            //     Serial.println("NO SHEILD");
-            //     return -1;
-            // }
-
             if(enterprise) {
+                #if (DEBUG)
                 Serial.println("NOT IMPLEMENTED");
+                #endif
                 // _wlStatus = WiFi.begin(SSID, WPA2_AUTH_PEAP, PASS);
                 return -1;
             } else {
@@ -48,17 +43,21 @@ namespace hf
                 int giveUp = 20;
                 while (_wlStatus != WL_CONNECTED)
                 {
+                    #if (DEBUG)
                     Serial.print("WiFi connect attempt failed, trying again ");
                     Serial.print(giveUp);
                     Serial.println(" reconnect attempts left...");
                     Serial.print("WiFi status: ");
                     Serial.println(_wlStatus);
+                    #endif
                     _wlStatus = WiFi.status();
 
                     giveUp--;
                     if (giveUp <= 0)
                     {
+                        #if (DEBUG)
                         Serial.println("Giving up: setup failed");
+                        #endif
                         return -1;
                     }
                     delay(500);
@@ -76,17 +75,21 @@ namespace hf
                 int giveUp = 20;
                 while (!_clStatus)
                 {
+                    #if (DEBUG)
                     Serial.print("Client connect attempt failed, trying again ");
                     Serial.print(giveUp);
                     Serial.println(" reconnect attempts left...");
                     Serial.print("Client status: ");
                     Serial.println(_clStatus);
+                    #endif
                     _clStatus = _client.connect(URL, LPORT);
 
                     giveUp--;
                     if (giveUp <= 0)
                     {
+                        #if (DEBUG)
                         Serial.println("Giving up: setup failed");
+                        #endif
                         return -1;
                     }
                 }
@@ -106,8 +109,12 @@ namespace hf
             if (connectWiFi(ssid, pass, enterprise) >= 0 && connectClient(url) >= 0)
             {
                 _init = 1;
+
+                #if (DEBUG)
                 Serial.println("WIFI CONNECTED");
-                return 0;
+                #endif
+                
+                return getTest();
             }
             else
             {
@@ -117,17 +124,12 @@ namespace hf
         }
 
         template <typename T>
-        void txWindow(T frame[], int type)
+        int txWindow(T frame[], int type)
         {
             if (WiFi.status() != WL_CONNECTED || !_client.connected())
             {
                 retryWiFi();
             }
-
-            // Serial.println("FREE RAM: ");
-            // Serial.println(getFreeRam());
-            // Serial.println(); Serial.println(WiFi.status());
-            // Serial.println(); Serial.println();
 
             std::string postData;
             // paramaterize
@@ -141,7 +143,7 @@ namespace hf
                     postData.append("PPG1,");
                     break;
                 case ECG_SLOT0:
-                    postData.append("ECG,");
+                    postData.append("ECG0,");
                     break;
             }
 
@@ -152,7 +154,6 @@ namespace hf
                 postData.append(std::to_string(frame[i]));
                 if(i != WINDOW_LENGTH-1) postData.append(",");
             }
-            postData.append("\n}");
 
             _http->beginRequest();
             _http->post(jsonReciever.c_str());
@@ -166,19 +167,48 @@ namespace hf
             _http->print(postData.c_str());
             _http->endRequest();
 
-            Serial.print(_http->responseStatusCode());
+            postData.clear();
+            
+            int statusCode = _http->responseStatusCode();
+            #if (DEBUG)
+            Serial.print(statusCode));
             Serial.println(_http->responseBody());
+            #else
+            _http->responseBody();
+            #endif
+
+            if(statusCode != 200){
+                return ERROR;
+            };
+
+            delay(10);
+
+            return 0;
         }
 
-        void getTest()
+        int getTest()
         {
             if (WiFi.status() != WL_CONNECTED || !_client.connected())
             {
                 retryWiFi();
             }
             _http->get(testEndpoint.c_str());
-            Serial.print(_http->responseStatusCode());
+
+            int statusCode = _http->responseStatusCode();
+            #if (DEBUG)
+            Serial.print(statusCode));
             Serial.println(_http->responseBody());
+            #else
+            _http->responseBody();
+            #endif
+
+            if(statusCode != 200){
+                return ERROR;
+            };
+
+            delay(10);
+
+            return 0;
         }
 
         bool isWiFiConnected() {
@@ -206,14 +236,14 @@ namespace hf
         }
 
         // TODO: IMPLEMENT IDENTITY CONFIRMATION
-        int sendDeviceId()
-        {
+        // int sendDeviceId()
+        // {
 
-        }
+        // }
 
-        int identityConfig()
-        {
+        // int identityConfig()
+        // {
 
-        }
+        // }
     };
 }

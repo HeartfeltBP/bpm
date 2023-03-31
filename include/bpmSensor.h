@@ -93,14 +93,19 @@ namespace hf
             write(0xCE, 0x0A);
             write(0xCF, 0x18);
             write(0xFF, 0x00);
+            #if(DEBUG) 
             Serial.println("ECG Configuration: Complete");
+            #endif 
+
             #endif
 
             // // 0x14 = 'led range?' = led current (50 mA = 0x00)
             write(0x14, 0x00);
 
-            Serial.println("PPG Configuration: Complete");
-            Serial.println("FIFO Configuration: Complete");
+            #if(DEBUG) 
+            Serial.println("[>] PPG Configuration: Complete");
+            Serial.println("[>] FIFO Configuration: Complete");
+            #endif
         }
     };
 
@@ -164,7 +169,9 @@ namespace hf
         {
             if (_slotIter[slot] + 1 >= WINDOW_LENGTH)
             {
+                #if(DEBUG) 
                 Serial.println("DISABLED!");
+                #endif
                 _slotIter[slot] = -1;
 
                 return DATA_DISABLED;
@@ -200,11 +207,16 @@ namespace hf
                 _slotStatus[2] = (handleIter(ECG_SLOT0) > 0) ? 1 : 0;
                 break;
             default:
+                #if (DEBUG)
                 Serial.println("Something went wrong?");
+                #endif
                 return ERROR;
                 break;
             }
+            bool check = _slotStatus[0] && _slotStatus[1] && _slotStatus[2];
 
+            #if(DEBUG)
+            Serial.print("[>]");
             Serial.print(_slotIter[0]);
             Serial.print("/");
             Serial.print(_slotIter[1]);
@@ -214,11 +226,10 @@ namespace hf
             Serial.print(_slotStatus[0]);
             Serial.print(_slotStatus[1]);
             Serial.print(_slotStatus[2]);
-
-            bool check = _slotStatus[0] && _slotStatus[1] && _slotStatus[2];
-
             Serial.print("=");
             Serial.println(check);
+            #endif
+
             if (check)
             {
                 _dataFull = true;
@@ -235,14 +246,21 @@ namespace hf
 
         int restartSampling()
         {
-            Serial.println("WINDOW HANDLER INVOKED");
             if ((_slotIter[0] == -1) && (_slotIter[1] == -1) && (_slotIter[2] == -1))
             {
                 _slotIter[0] = 0;
                 _slotIter[1] = 0;
                 _slotIter[2] = 0;
+
+                _dataFull = 0;
+                #if (DEBUG)
+                Serial.println("[!] SAMPLING ITERATORS RESET");
+                #endif
                 return 1;
             }
+            #if (DEBUG)
+            Serial.println("[!] NOT ALL SAMPLE ITERATORS DISABLED - ITER STATUS UNCHANGED");
+            #endif
             return 0;
         }
     };
@@ -310,7 +328,7 @@ namespace hf
 
         int collectSample(int readBytes)
         {
-            if(_windowHandler->dataFull()) {
+            if (_windowHandler->dataFull()) {
                 return DATA_FULL;
             }
 
@@ -393,7 +411,7 @@ namespace hf
                 if (_available > 0)
                 {
                     if (int ret = sample() > 0) {
-                        if(ret == 5) 
+                        if (ret == 5)
                         {
                             // if data is full, send 0 to not transmit - make a more explicit condition
                             return 0;
@@ -432,7 +450,7 @@ namespace hf
 
         int restartSampling()
         {
-            _windowHandler->restartSampling();
+            return _windowHandler->restartSampling();
         }
     };
 
@@ -441,17 +459,17 @@ namespace hf
     protected:
         struct opFlags
         {
-            bool enabled        = 1;
-            bool txReady        = 0;
-            bool configured     = 0;
-            bool wiFiInit       = 0;
-            bool sensorInit     = 0;
-            bool i2cInit        = 0;
-            bool serialInit     = 0;
-            bool proximity      = 0;
-            bool identity       = 0;
-            bool dataFull       = 0;
-            bool error          = 0;
+            bool enabled = 1;
+            bool txReady = 0;
+            bool configured = 0;
+            bool wiFiInit = 0;
+            bool sensorInit = 0;
+            bool i2cInit = 0;
+            bool serialInit = 0;
+            bool proximity = 0;
+            bool identity = 0;
+            bool dataFull = 0;
+            bool error = 0;
         } _opFlags;
 
         ppgInt _ppgArr0[WINDOW_LENGTH];
@@ -464,7 +482,7 @@ namespace hf
         BpmSensor _bpmSensor;
         BpmWiFi _bpmWiFi;
 
-        const char* deviceId;
+        // const char* deviceId;
 
     public:
         BPM(): _maxReg(MaxReg()),
@@ -557,7 +575,7 @@ namespace hf
                 delay(100);
             }
 
-            if(WIFI_ENABLED && !_opFlags.wiFiInit)
+            if (WIFI_ENABLED && !_opFlags.wiFiInit)
             {
                 initWiFi();
             }
@@ -570,11 +588,11 @@ namespace hf
         int txWindows(bool debug = false)
         {
             _bpmWiFi.getTest();
-            #if SLOT_COUNT >= 1
+            #if (SLOT_COUNT >= 1)
             _bpmWiFi.txWindow(_ppgArr0, PPG_SLOT0);
             delay(100);
             #endif
-            #if SLOT_COUNT >= 2
+            #if (SLOT_COUNT >= 2)
             _bpmWiFi.txWindow(_ppgArr1, PPG_SLOT1);
             delay(100);
             #endif
@@ -600,7 +618,7 @@ namespace hf
             if (_bpmSensor.sample() > 0)
             {
                 _opFlags.dataFull = 1;
-                if(_opFlags.wiFiInit && _opFlags.configured && !_opFlags.error)
+                if (_opFlags.wiFiInit && _opFlags.configured && !_opFlags.error)
                 {
                     _opFlags.txReady = 1;
                 }
@@ -609,12 +627,41 @@ namespace hf
             if (_opFlags.txReady && _opFlags.wiFiInit)
             {
                 txWindows();
-                if(!_bpmSensor.restartSampling() > 0) {
+                _opFlags.txReady = 0;
+
+                if (!_bpmSensor.restartSampling() > 0) {
                     return -1;
                 }
+
+                _opFlags.dataFull = 0;
+
                 return 1;
             }
             return 0;
+        }
+
+        void printWindows(int printDelay = 10)
+        {
+            #if (!DEBUG)
+            return;
+            #endif
+
+            #if (SLOT_COUNT >= 1)
+            Serial.println("[>] PRINTING WINDOWS...");
+            for(int i = 0; i < WINDOW_LENGTH; i++) {
+                Serial.print(_ppgArr0[i]);
+                if(SLOT_COUNT == 1) Serial.println();
+                #if (SLOT_COUNT >= 2)
+                Serial.print(",");
+                Serial.print(_ppgArr1[i]);
+                #endif
+                #if (SLOT_COUNT >= 3)
+                Serial.print(",");
+                Serial.println(_ecgArr0[i]);
+                #endif
+                delay(printDelay);
+            }
+            #endif
         }
     };
 }
