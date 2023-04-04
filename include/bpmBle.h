@@ -27,7 +27,6 @@ namespace hf
 
         byte _wlStatus = WL_IDLE_STATUS;
         byte _clStatus = 0;
-        std::string _postId = "INIT";
 
         bool _init = 0;
         
@@ -143,12 +142,10 @@ namespace hf
             std::string postData;
             // paramaterize
             // retreive from csv array index 0 = # of samples, 1 = sampling rate, 2 = type
-            
-            // Post Data: 0: num-samples; 1: sampling-rate; 2: metric-type; 3: collections-sent; 4: transmission-count; 5: post-id 
-            postData.append("4100,200,"); // 0, 1
+            postData.append("4100,200,");
             switch(type) {
                 case PPG_SLOT0:
-                    postData.append("PPG0,"); 
+                    postData.append("PPG0,");
                     break;
                 case PPG_SLOT1:
                     postData.append("PPG1,");
@@ -156,11 +153,9 @@ namespace hf
                 case ECG_SLOT0:
                     postData.append("ECG0,");
                     break;
-            } // 2
+            }
 
-            postData.append(std::to_string(_wcSent) + ","); // 3
-            postData.append(std::to_string(_txCount) + ","); // 4
-            postData.append(_postId); // 5
+            postData.append(std::to_string(_wcSent)); postData.append(",");
 
             // prob best to calculate data structure length but for some reason
             // sizeof(frame) / sizeof(T) do not work
@@ -190,15 +185,16 @@ namespace hf
                 _wcSent++;
             }
             
+            
             int statusCode = _http->responseStatusCode();
-            _postId = _http->responseBody().c_str();
-
             #if (DEBUG && VERBOSE)
             Serial.print(statusCode);
-            Serial.println(_postId.c_str());
+            Serial.println(_http->responseBody());
+            #else
+            _http->responseBody();
             #endif
 
-            if(statusCode != 200 || statusCode != 100){
+            if(statusCode != 200){
                 return ERROR;
             };
 

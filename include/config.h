@@ -7,18 +7,38 @@
 
 // DEBUG: enables serial output 
 #define DEBUG           true
+#define VERBOSE         true
+#define PRINT           false
 #define TB              false
 
 #if DEBUG
 #define SERIAL_ENABLED  true
 #endif
-#define SERIAL_ENABLED false
+
+
+#if !DEV_XIAOESP32C3
+#define WIFI_ENABLED    false
+#endif
 #define WIFI_ENABLED    true
 
 #define I2C_ADDRESS     94
-#define WINDOW_LENGTH   4100
+#define FRAME_LENGTH   4100
 #define SLOT_COUNT      3
 #define BUFFER_LENGTH   32
 #define SAMPLING_RATE   200
+
+// Interrupts
+#define INT_ENABLE false
+// 0x00
+#if INT_ENABLE
+    #define ALMOST_FULL_FLAG_EN true
+    #define NEW_PPG_DATA_RDY_EN false
+    #define AMBIENTLIGHT_OVF_EN false
+    #define PROXIMITY_INTERRUPT false
+    #define POWER_READY_FLAG_EN false
+    // 0x01
+    #define VDD_OUT_OF_RANGE_EN false
+    #define NEW_ECG_DATA_RDY_EN false
+#endif
 
 #endif
