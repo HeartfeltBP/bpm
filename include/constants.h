@@ -13,4 +13,8 @@ typedef long int ecgInt;
 
 #define DISABLED_SLOT -1
 
+#define TEST_ENDPOINT   "/api/test"
+#define RX_ENDPOINT     "/api/rx"
+#define TOKEN_ENDPOINT  "/api/token"
+
 #endif

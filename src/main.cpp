@@ -3,7 +3,7 @@
 #include "bpm.h"
 #include "sutils.h"
 
-static hf::BPM bpm = hf::BPM();
+hf::BPM bpm = hf::BPM();
 
 void setup() {
     if (bpm.config() < 0) {

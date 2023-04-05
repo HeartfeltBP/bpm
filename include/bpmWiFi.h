@@ -5,29 +5,26 @@
 #include <WiFi.h>
 #include <HttpClient.h>
 #include <string>
+#include <ESPAsyncWebServer.h>
 
 #include ".env.h"
 #include "crets.h"
 
 namespace hf
 {
-    static const std::string apiEndpoints[2] = {
-        "/api/rx",
-        "/api/test"
-    };
-
-    static const std::string jsonReciever = apiEndpoints[0];
-    static const std::string testEndpoint = apiEndpoints[1];
 
     class BpmWiFi
     {
     protected:
+        // WiFiServer _server = WiFiServer(80);
+        AsyncWebServer _server = AsyncWebServer(80);
         WiFiClient _client;
         HttpClient *_http;
 
         byte _wlStatus = WL_IDLE_STATUS;
         byte _clStatus = 0;
         std::string _postId = "INIT";
+        std::string _token;
 
         bool _init = 0;
         
@@ -132,6 +129,47 @@ namespace hf
             }
         }
 
+        void initWebServer() 
+        {
+            if (WiFi.status() != WL_CONNECTED || !_client.connected())
+            {
+                retryWiFi();
+            }
+
+            _server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+                request->send(200, "text/plain", "☑️ Bungo");
+            });
+
+            _server.on("/", HTTP_POST, [this](AsyncWebServerRequest *request) {
+                AsyncWebHeader *header = request->getHeader("Authorization");
+                this->_token = header->toString().c_str();
+
+                #if VERBOSE && DEBUG
+                Serial.println(this->_token.c_str());
+                #endif
+            });
+
+            #if (DEBUG && VERBOSE)
+            Serial.print("SERVER RUNNING ON IP: "); Serial.println(WiFi.localIP());
+            #endif
+
+            _server.begin();
+        }
+
+        void endWebServer() {
+            _server.end();
+        }
+
+        bool identityStatus()
+        {
+            return (_token.length() > 0) ? true : false;
+        }
+
+        const char *getIdentityToken() 
+        {
+            return _token.c_str();
+        }
+
         template <typename T, std::size_t n>
         int txWindow(T (&frame)[n], int type)
         {
@@ -139,12 +177,16 @@ namespace hf
             {
                 retryWiFi();
             }
+            // if(!_token || _token.length() == 0) {
+
+            //     return ERROR;
+            // }
 
             std::string postData;
             // paramaterize
             // retreive from csv array index 0 = # of samples, 1 = sampling rate, 2 = type
             
-            // Post Data: 0: num-samples; 1: sampling-rate; 2: metric-type; 3: collections-sent; 4: transmission-count; 5: post-id 
+            // Post Info: 0: num-samples; 1: sampling-rate; 2: metric-type; 3: collections-sent; 4: transmission-count; 5: post-id 
             postData.append("4100,200,"); // 0, 1
             switch(type) {
                 case PPG_SLOT0:
@@ -161,6 +203,7 @@ namespace hf
             postData.append(std::to_string(_wcSent) + ","); // 3
             postData.append(std::to_string(_txCount) + ","); // 4
             postData.append(_postId); // 5
+            // postData.append(_token);
 
             // prob best to calculate data structure length but for some reason
             // sizeof(frame) / sizeof(T) do not work
@@ -170,7 +213,7 @@ namespace hf
             }
 
             _http->beginRequest();
-            _http->post(jsonReciever.c_str());
+            _http->post(RX_ENDPOINT);
             _http->sendHeader("User-Agent", "HF-BPM/0.1");
             _http->sendHeader("Content-Length", postData.length());
             _http->sendHeader("Content-Type", "text/csv");
@@ -193,6 +236,7 @@ namespace hf
             int statusCode = _http->responseStatusCode();
             _postId = _http->responseBody().c_str();
 
+            // CREATE LOGGER CLASS
             #if (DEBUG && VERBOSE)
             Serial.print(statusCode);
             Serial.println(_postId.c_str());
@@ -213,7 +257,7 @@ namespace hf
             {
                 retryWiFi();
             }
-            _http->get(testEndpoint.c_str());
+            _http->get(TEST_ENDPOINT);
 
             int statusCode = _http->responseStatusCode();
             #if (DEBUG && VERBOSE)
@@ -255,17 +299,6 @@ namespace hf
                 connectClient(URL);
             }
         }
-
-        // TODO: IMPLEMENT IDENTITY CONFIRMATION
-        // int sendDeviceId()
-        // {
-
-        // }
-
-        // int identityConfig()
-        // {
-
-        // }
     };
 }
 #endif

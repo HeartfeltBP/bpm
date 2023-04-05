@@ -10,6 +10,7 @@
 
 #include "bpmSensor.h"
 #include "bpmWiFi.h"
+#include "bpmBle.h"
 #include ".env.h"
 
 namespace hf
@@ -42,6 +43,7 @@ namespace hf
         MaxFifo _maxFifo;
         BpmSensor _bpmSensor;
         BpmWiFi _bpmWiFi;
+        // BpmBle _bpmBle;
 
         // const char* deviceId;
 
@@ -107,6 +109,30 @@ namespace hf
             {
                 _opFlags.wiFiInit = 1;
             }
+
+            return 0;
+        }
+
+        int initIdentity(){
+            if(!_opFlags.wiFiInit) return -1;
+
+            _bpmWiFi.initWebServer();
+
+            int giveUp = 2000;
+
+            while(!_bpmWiFi.identityStatus() && giveUp > 0) {
+                Serial.print(".");
+                delay(100);
+
+                giveUp--;
+            }
+
+            if(_bpmWiFi.identityStatus()) {
+                Serial.println("Wowee");
+            } else {
+                return ERROR;
+            }
+
             return 0;
         }
 
@@ -142,6 +168,10 @@ namespace hf
             }
 
             _opFlags.configured = _opFlags.i2cInit && _opFlags.sensorInit;
+
+            if(!_opFlags.identity) {
+                initIdentity();
+            }
 
             return 0;
         }
