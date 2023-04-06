@@ -17,4 +17,6 @@ typedef long int ecgInt;
 #define RX_ENDPOINT     "/api/rx"
 #define TOKEN_ENDPOINT  "/api/token"
 
+#define SERVE_PORT 80
+
 #endif

@@ -201,7 +201,7 @@ namespace hf
             if (_slotIter[slot] + 1 >= FRAME_LENGTH)
             {
                 #if(DEBUG && VERBOSE) 
-                Serial.println("DISABLED!");
+                Serial.println("[*] DISABLED!");
                 #endif
                 _slotIter[slot] = -1;
 
@@ -292,7 +292,7 @@ namespace hf
             #if (DEBUG && VERBOSE)
             Serial.println("[!] NOT ALL SAMPLE ITERATORS DISABLED - ITER STATUS UNCHANGED");
             #endif
-            return 0;
+            return -1;
         }
     };
 
@@ -357,6 +357,7 @@ namespace hf
 
         /**
          * Get a sample from each slot and push to window handler
+         * returns DATA_FULL (5) if full
         */
 
         int collectSample(int readBytes)
@@ -443,12 +444,13 @@ namespace hf
 
                 if (_available > 0)
                 {
-                    if (int ret = sample() > 0) {
-                        if (ret == 5)
-                        {
-                            // if data is full, send 0 to not transmit - make a more explicit condition
-                            return 0;
-                        }
+                    if (sample() > 0) {
+                        // if (ret == 5)
+                        // {
+                        //     // if data is full, send 0 to not transmit - make a more explicit condition
+                        //     // why? to prevent transmission stick to flags
+                        //     return 0;
+                        // }
                         return 1;
                     }
                 }

@@ -104,31 +104,56 @@ namespace hf
 
         int initWiFi()
         {
+            if(!WIFI_ENABLED) return 0;
+
             _bpmWiFi.initWiFi();
             if (_bpmWiFi.isWiFiConnected() && _bpmWiFi.isClientConnected())
             {
                 _opFlags.wiFiInit = 1;
+            } else {
+                int giveUp = 20;
+
+                _opFlags.wiFiInit = 0;
+                Serial.println("[!] WiFi not connected: ");
+                while(!_bpmWiFi.isWiFiConnected() || !_bpmWiFi.isClientConnected() || !giveUp > 0) {
+                    Serial.print("|");
+                    delay(800);
+                    _bpmWiFi.initWiFi();
+                    giveUp--;
+                }
+
+                if(!_bpmWiFi.isWiFiConnected() || !_bpmWiFi.isClientConnected()) {
+                    Serial.println("[!] BPM WiFi connection attempts failed");
+                    Serial.println("[*] Starting data collection without WiFi - stops after single frame");
+                }
             }
 
             return 0;
         }
 
+        void invalidateIdentity() {
+            _opFlags.identity = 0;
+        }
+
         int initIdentity(){
-            if(!_opFlags.wiFiInit) return -1;
+            if(!_opFlags.wiFiInit || _opFlags.identity) return -1;
 
             _bpmWiFi.initWebServer();
 
             int giveUp = 2000;
 
             while(!_bpmWiFi.identityStatus() && giveUp > 0) {
-                Serial.print(".");
+                giveUp % 100 == 0 ? Serial.print(giveUp) : Serial.print(".");
                 delay(100);
 
                 giveUp--;
             }
 
+            _bpmWiFi.endWebServer();
+
             if(_bpmWiFi.identityStatus()) {
                 Serial.println("Wowee");
+                _opFlags.identity = 1;
             } else {
                 return ERROR;
             }
@@ -165,19 +190,24 @@ namespace hf
             if (WIFI_ENABLED && !_opFlags.wiFiInit)
             {
                 initWiFi();
+                delay(100);
+            }
+
+            if(_opFlags.wiFiInit && !_opFlags.identity) {
+                initIdentity();
             }
 
             _opFlags.configured = _opFlags.i2cInit && _opFlags.sensorInit;
-
-            if(!_opFlags.identity) {
-                initIdentity();
-            }
 
             return 0;
         }
 
         int txWindows(bool debug = false)
         {
+            if(!_opFlags.wiFiInit) {
+                return -1;
+            }
+
             _bpmWiFi.getTest();
             #if (SLOT_COUNT >= 1)
             _bpmWiFi.txWindow(_ppgArr0, PPG_SLOT0);
@@ -197,43 +227,69 @@ namespace hf
 
         int sampleTx()
         {
+            if(!_opFlags.enabled) {
+                Serial.println("[*] Not enabled!");
+                return 0;
+            }
+            
             if (!_opFlags.sensorInit || !_opFlags.configured || _opFlags.error)
             {
+                #if VERBOSE && DEBUG
+                Serial.println("[!] Cannot sample, not configured or error has occured");
+                #endif
                 return -1;
             }
+
             if (_windowHandler.dataFull())
             {
+                #if VERBOSE && DEBUG
+                Serial.println("[!] DATA FULL");
+                Serial.print("0:");Serial.print(_opFlags.wiFiInit); Serial.print(_opFlags.configured); Serial.println(_opFlags.identity);
+                delay(100);
+                #endif
+
+                // wifi init again?
+
                 return 0;
             }
 
             if (_bpmSensor.sample() > 0)
             {
                 _opFlags.dataFull = 1;
-                if (_opFlags.wiFiInit && _opFlags.configured && !_opFlags.error)
+                if (_opFlags.wiFiInit && _opFlags.configured && _opFlags.identity && !_opFlags.error)
                 {
+                    #if VERBOSE && DEBUG
+                    Serial.print("0:");Serial.print(_opFlags.wiFiInit); Serial.print(_opFlags.configured); Serial.println(_opFlags.identity);
+                    Serial.println("[*] Ready to transmit...");
+                    #endif
                     _opFlags.txReady = 1;
                 }
             }
 
-            if (_opFlags.txReady && _opFlags.wiFiInit)
+            if (_opFlags.txReady && _opFlags.wiFiInit && _opFlags.identity)
             {
-                txWindows();
-                _opFlags.txReady = 0;
+                Serial.print("0:");Serial.print(_opFlags.txReady); Serial.print(_opFlags.configured); Serial.println(_opFlags.identity);
+                if (txWindows() >= 0) {
+                    _opFlags.txReady = 0;
 
-                if (!_bpmSensor.restartSampling() > 0) {
-                    return -1;
-                }
+                    if (_bpmSensor.restartSampling() < 0) {
+                        return -1;
+                    }
 
-                _opFlags.dataFull = 0;
+                    _opFlags.dataFull = 0;
 
                 return 1;
+                } else {
+                    return -1;
+                }
             }
             return 0;
         }
 
         void printWindows(int printDelay = 10)
         {
-            #if (!PRINT || !DEBUG)
+            // wtf
+            #if (!PRINT || !DEBUG || !VERBOSE)
             return;
             #endif
 

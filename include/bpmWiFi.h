@@ -17,7 +17,7 @@ namespace hf
     {
     protected:
         // WiFiServer _server = WiFiServer(80);
-        AsyncWebServer _server = AsyncWebServer(80);
+        AsyncWebServer _server;
         WiFiClient _client;
         HttpClient *_http;
 
@@ -50,11 +50,11 @@ namespace hf
                 while (_wlStatus != WL_CONNECTED)
                 {
                     #if (DEBUG && VERBOSE)
-                    Serial.print("WiFi connect attempt failed, trying again ");
+                    Serial.print("[*] W{ #r:");
                     Serial.print(giveUp);
-                    Serial.println(" reconnect attempts left...");
-                    Serial.print("WiFi status: ");
-                    Serial.println(_wlStatus);
+                    Serial.print(" s#:");
+                    Serial.print(_wlStatus);
+                    Serial.println(" }");
                     #endif
                     _wlStatus = WiFi.status();
 
@@ -62,7 +62,8 @@ namespace hf
                     if (giveUp <= 0)
                     {
                         #if (DEBUG && VERBOSE)
-                        Serial.println("Giving up: setup failed");
+                        Serial.print("[!] bpmWiFi giving up: wifi status: ");
+                        Serial.println(_wlStatus);
                         #endif
                         return -1;
                     }
@@ -82,19 +83,21 @@ namespace hf
                 while (!_clStatus)
                 {
                     #if (DEBUG && VERBOSE)
-                    Serial.print("Client connect attempt failed, trying again ");
+                    Serial.print("[*] c{ #r:");
                     Serial.print(giveUp);
-                    Serial.println(" reconnect attempts left...");
-                    Serial.print("Client status: ");
-                    Serial.println(_clStatus);
+                    Serial.print(" s#:");
+                    Serial.print(_clStatus);
+                    Serial.println(" }");
                     #endif
+
                     _clStatus = _client.connect(URL, LPORT);
 
                     giveUp--;
                     if (giveUp <= 0)
                     {
                         #if (DEBUG && VERBOSE)
-                        Serial.println("Giving up: setup failed");
+                        Serial.print("[!] bpmWiFi giving up: client status: ");
+                        Serial.println(_clStatus);
                         #endif
                         return -1;
                     }
@@ -104,9 +107,9 @@ namespace hf
         }
 
     public:
-        // place within try catch block
+        // try constructing the http client
         BpmWiFi(std::string url = URL, std::string ssid = SSID, std::string password = PASS)
-        {}
+        :  _server(AsyncWebServer(SERVE_PORT)) {}
 
         int initWiFi(bool enterprise = false, std::string ssid = SSID, std::string pass = PASS, std::string url = URL)
         {
@@ -117,7 +120,7 @@ namespace hf
                 _init = 1;
 
                 #if (DEBUG && VERBOSE)
-                Serial.println("WIFI CONNECTED");
+                Serial.println("[*] WIFI CONNECTED!");
                 #endif
                 
                 return getTest();
@@ -135,9 +138,34 @@ namespace hf
             {
                 retryWiFi();
             }
+            
+            // allow CORS from link
+            DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
+            DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "authorization");
+            // handle CORS prefetch
+            _server.onNotFound([](AsyncWebServerRequest *request) {
+                if(request->method() == HTTP_OPTIONS) {
+                    request->send(200, "text/plain", "⚙️");
+
+                    #if VERBOSE && DEBUG
+                    Serial.println("⚙️");
+                    #endif
+                }
+                return;
+            });
+
+            _server.on("/", HTTP_OPTIONS, [](AsyncWebServerRequest *request) {
+                request->send(200, "text/plain", "⚙️");
+                #if VERBOSE && DEBUG
+                Serial.println("⚙️");
+                #endif
+            });
 
             _server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
                 request->send(200, "text/plain", "☑️ Bungo");
+                #if VERBOSE && DEBUG
+                Serial.print("Bungo"); Serial.println("☑️");
+                #endif
             });
 
             _server.on("/", HTTP_POST, [this](AsyncWebServerRequest *request) {
@@ -150,9 +178,9 @@ namespace hf
             });
 
             #if (DEBUG && VERBOSE)
-            Serial.print("SERVER RUNNING ON IP: "); Serial.println(WiFi.localIP());
+            Serial.print("SERVER RUNNING ON IP: "); Serial.print(WiFi.localIP()); Serial.print(":"); Serial.println(SERVE_PORT);
             #endif
-
+            
             _server.begin();
         }
 
@@ -173,14 +201,22 @@ namespace hf
         template <typename T, std::size_t n>
         int txWindow(T (&frame)[n], int type)
         {
+            #if VERBOSE && DEBUG
+            Serial.println("tx...");
+            #endif
+
             if (WiFi.status() != WL_CONNECTED || !_client.connected())
             {
                 retryWiFi();
             }
-            // if(!_token || _token.length() == 0) {
 
-            //     return ERROR;
-            // }
+            #if VERBOSE && DEBUG
+            Serial.print(this->_token.c_str()); Serial.println("<FOR USE TO TX>");
+            delay(10000);
+            #endif
+            if(_token.length() == 0) {
+                return ERROR;
+            }
 
             std::string postData;
             // paramaterize
@@ -202,11 +238,9 @@ namespace hf
 
             postData.append(std::to_string(_wcSent) + ","); // 3
             postData.append(std::to_string(_txCount) + ","); // 4
-            postData.append(_postId); // 5
-            // postData.append(_token);
+            postData.append(_postId + ","); // 5
+            postData.append(_token + ",");
 
-            // prob best to calculate data structure length but for some reason
-            // sizeof(frame) / sizeof(T) do not work
             for(int i = 0; i < FRAME_LENGTH; i++) {
                 postData.append(std::to_string(frame[i]));
                 if(i != FRAME_LENGTH-1) postData.append(",");
@@ -234,7 +268,8 @@ namespace hf
             }
             
             int statusCode = _http->responseStatusCode();
-            _postId = _http->responseBody().c_str();
+            _http->responseBody();
+            // _postId = _http->responseBody().c_str();
 
             // CREATE LOGGER CLASS
             #if (DEBUG && VERBOSE)
@@ -277,12 +312,12 @@ namespace hf
         }
 
         bool isWiFiConnected() {
-            if(!_init) initWiFi();
-            return (_wlStatus == WL_CONNECTED) ? true : false;
+            // if(!_init) initWiFi();
+            return (_wlStatus == WL_CONNECTED);
         }
 
         bool isClientConnected() {
-            return (_wlStatus == WL_CONNECTED) ? true : false;
+            return (_clStatus == 1);
         }
 
         void retryWiFi()
