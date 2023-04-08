@@ -3,7 +3,7 @@
 #include "bpm.h"
 #include "sutils.h"
 
-hf::BPM bpm = hf::BPM();
+static hf::BPM bpm = hf::BPM();
 
 void setup() {
     if (bpm.config() < 0) {
@@ -15,11 +15,17 @@ void setup() {
     }
 
     #if (DEBUG && VERBOSE)
-    dotPrinter(8, *"*", 500);
+    dotPrinter(8, *"*", 10);
     Serial.println("[!] Setup Complete");
     #endif
 
-    delay(1000);
+    delay(400);
+
+    LOG_LN("BALLSBALLSBALLS");
+    LOG_LN("BALLSBALLSBALLS");
+    LOG_LN("BALLSBALLSBALLS");
+    LOG_LN("BALLSBALLSBALLS");
+    LOG_LN("BALLSBALLSBALLS");
 }
 
 void loop() {

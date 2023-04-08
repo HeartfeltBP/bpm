@@ -1,9 +1,15 @@
 #ifndef HF_CONFIG
 #define HF_CONFIG
 
-#define DEV_XIAOESP32C3 true
-// #define DEV_XIAOSAMD21  false
-// #define DEV_NANO33IOT   false
+#define FIRMWARE_VERSION F("0.1.0")
+#define DEVICE_ID F("BUNGUSbGljayBteSBudXRzIGFzbGFu69aQ")
+#define DEVICE_INFO F("BUNGUSbGljayBteSBudXRzIGFzbGFu69aQ,0.1.0")
+
+// NOT IMPLEMENTED
+    #define DEV_XIAOESP32C3 true
+    // #define DEV_XIAOSAMD21  false
+    // #define DEV_NANO33IOT   false
+// NOT IMPLEMNTED
 
 // DEBUG: enables serial output 
 #define DEBUG           true

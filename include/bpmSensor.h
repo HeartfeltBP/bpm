@@ -5,7 +5,6 @@
 #include <Arduino.h>
 
 #include "constants.h"
-#include "config.h"
 #include "crets.h"
 
 #include "bpmWiFi.h"

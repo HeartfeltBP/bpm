@@ -6,6 +6,7 @@
 #include <HttpClient.h>
 #include <string>
 #include <ESPAsyncWebServer.h>
+#include <AsyncElegantOTA.h>
 
 #include ".env.h"
 #include "crets.h"
@@ -19,7 +20,7 @@ namespace hf
         // WiFiServer _server = WiFiServer(80);
         AsyncWebServer _server;
         WiFiClient _client;
-        HttpClient *_http;
+        HttpClient* _http;
 
         byte _wlStatus = WL_IDLE_STATUS;
         byte _clStatus = 0;
@@ -27,34 +28,36 @@ namespace hf
         std::string _token;
 
         bool _init = 0;
-        
+
         // txCount iterates every post transmission, wcSent iterates every SLOT_COUNT windows
         int  _txCount = 0;
         int _wcSent = 0; // window collections (a collection has a window from each slot)
 
         int connectWiFi(std::string ssid, std::string password, boolean enterprise = false)
         {
-            if(enterprise) {
-                #if (DEBUG && VERBOSE)
-                Serial.println("NOT IMPLEMENTED");
-                #endif
+            if (enterprise) {
+                LOG_H_LN("NOT_IMPLEMENTED");
                 // _wlStatus = WiFi.begin(SSID, WPA2_AUTH_PEAP, PASS);
                 return -1;
-            } else {
+            }
+            else 
+            {
                 _wlStatus = WiFi.begin(SSID, PASS);
             }
+
             delay(500);
+
             if (_wlStatus != WL_CONNECTED)
             {
                 int giveUp = 20;
                 while (_wlStatus != WL_CONNECTED)
                 {
                     #if (DEBUG && VERBOSE)
-                    Serial.print("[*] W{ #r:");
-                    Serial.print(giveUp);
-                    Serial.print(" s#:");
-                    Serial.print(_wlStatus);
-                    Serial.println(" }");
+                    LOG_H("[*] W{ #r:");
+                    LOG(giveUp);
+                    LOG_H(" s#:");
+                    LOG(_wlStatus);
+                    LOG_H_LN(" }");
                     #endif
                     _wlStatus = WiFi.status();
 
@@ -62,8 +65,8 @@ namespace hf
                     if (giveUp <= 0)
                     {
                         #if (DEBUG && VERBOSE)
-                        Serial.print("[!] bpmWiFi giving up: wifi status: ");
-                        Serial.println(_wlStatus);
+                        LOG_H("[!] bpmWiFi giving up: wifi status: ");
+                        LOG_LN(_wlStatus);
                         #endif
                         return -1;
                     }
@@ -80,25 +83,23 @@ namespace hf
             if (!_clStatus)
             {
                 int giveUp = 20;
+
                 while (!_clStatus)
                 {
-                    #if (DEBUG && VERBOSE)
-                    Serial.print("[*] c{ #r:");
-                    Serial.print(giveUp);
-                    Serial.print(" s#:");
-                    Serial.print(_clStatus);
-                    Serial.println(" }");
-                    #endif
+                    DBG(delay(10000));
+                    LOG_H("[*] c{ #r:");
+                    LOG(giveUp);
+                    LOG_H(" s#:");
+                    LOG(_clStatus);
+                    LOG_H_LN(" }");
 
                     _clStatus = _client.connect(URL, LPORT);
 
                     giveUp--;
                     if (giveUp <= 0)
                     {
-                        #if (DEBUG && VERBOSE)
-                        Serial.print("[!] bpmWiFi giving up: client status: ");
-                        Serial.println(_clStatus);
-                        #endif
+                        LOG_H("[!] bpmWiFi giving up: client status: ");
+                        LOG_LN(_clStatus);
                         return -1;
                     }
                 }
@@ -109,7 +110,7 @@ namespace hf
     public:
         // try constructing the http client
         BpmWiFi(std::string url = URL, std::string ssid = SSID, std::string password = PASS)
-        :  _server(AsyncWebServer(SERVE_PORT)) {}
+            : _server(AsyncWebServer(SERVE_PORT)) {}
 
         int initWiFi(bool enterprise = false, std::string ssid = SSID, std::string pass = PASS, std::string url = URL)
         {
@@ -118,11 +119,8 @@ namespace hf
             if (connectWiFi(ssid, pass, enterprise) >= 0 && connectClient(url) >= 0)
             {
                 _init = 1;
-
-                #if (DEBUG && VERBOSE)
-                Serial.println("[*] WIFI CONNECTED!");
-                #endif
-                
+                LOG_H_LN("[*] WIFI CONNECTED!");
+                LOG_H("[*] Connected to"); LOG_LN(WiFi.getHostname());
                 return getTest();
             }
             else
@@ -132,55 +130,49 @@ namespace hf
             }
         }
 
-        void initWebServer() 
+        void initWebServer()
         {
             if (WiFi.status() != WL_CONNECTED || !_client.connected())
             {
                 retryWiFi();
             }
-            
+
             // allow CORS from link
             DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
             DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "authorization");
+            
             // handle CORS prefetch
-            _server.onNotFound([](AsyncWebServerRequest *request) {
-                if(request->method() == HTTP_OPTIONS) {
-                    request->send(200, "text/plain", "⚙️");
-
-                    #if VERBOSE && DEBUG
-                    Serial.println("⚙️");
-                    #endif
+            _server.onNotFound([](AsyncWebServerRequest* request) {
+                if (request->method() == HTTP_OPTIONS) {
+                    request->send(200, HTTP_PLAINTEXT, F("⚙️"));
+                    LOG_H_LN("⚙️");
                 }
                 return;
-            });
+                });
 
-            _server.on("/", HTTP_OPTIONS, [](AsyncWebServerRequest *request) {
-                request->send(200, "text/plain", "⚙️");
-                #if VERBOSE && DEBUG
-                Serial.println("⚙️");
-                #endif
-            });
+            // tell external server we can handle CORS request
+            _server.on("/", HTTP_OPTIONS, [](AsyncWebServerRequest* request) {
+                request->send(200, HTTP_PLAINTEXT, F("⚙️"));
+                LOG_H_LN("⚙️🎫");
+                });
 
-            _server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-                request->send(200, "text/plain", "☑️ Bungo");
-                #if VERBOSE && DEBUG
-                Serial.print("Bungo"); Serial.println("☑️");
-                #endif
-            });
+            // recieve get request when pairing is initiated from link
+            _server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
+                request->send(200, HTTP_PLAINTEXT, DEVICE_INFO);
+                LOG_H_LN("☑️📋");
+                });
 
-            _server.on("/", HTTP_POST, [this](AsyncWebServerRequest *request) {
-                AsyncWebHeader *header = request->getHeader("Authorization");
+            _server.on("/", HTTP_POST, [this](AsyncWebServerRequest* request) {
+                AsyncWebHeader* header = request->getHeader("Authorization");
                 this->_token = header->toString().c_str();
+                LOG_LN(this->_token.c_str());
+                });
 
-                #if VERBOSE && DEBUG
-                Serial.println(this->_token.c_str());
-                #endif
-            });
+            LOG_H("SERVER RUNNING ON IP: "); 
+            LOG(WiFi.localIP()); 
+            LOG_H(":"); 
+            LOG_LN(SERVE_PORT);
 
-            #if (DEBUG && VERBOSE)
-            Serial.print("SERVER RUNNING ON IP: "); Serial.print(WiFi.localIP()); Serial.print(":"); Serial.println(SERVE_PORT);
-            #endif
-            
             _server.begin();
         }
 
@@ -193,57 +185,55 @@ namespace hf
             return (_token.length() > 0) ? true : false;
         }
 
-        const char *getIdentityToken() 
+        const char* getIdentityToken()
         {
             return _token.c_str();
         }
 
         template <typename T, std::size_t n>
-        int txWindow(T (&frame)[n], int type)
+        int txWindow(T(&frame)[n], int type)
         {
-            #if VERBOSE && DEBUG
-            Serial.println("tx...");
-            #endif
-
+            LOG_H_LN("[*] Preparing to TX...");
             if (WiFi.status() != WL_CONNECTED || !_client.connected())
             {
                 retryWiFi();
             }
 
-            #if VERBOSE && DEBUG
-            Serial.print(this->_token.c_str()); Serial.println("<FOR USE TO TX>");
-            delay(10000);
-            #endif
-            if(_token.length() == 0) {
+            LOG_H("<FOR USE TO TX> <> BEGIN<");
+            LOG(this->_token.c_str());
+            LOG_H_LN(">END");
+            DBG(delay(10000));
+
+            if (_token.length() == 0) {
                 return ERROR;
             }
 
             std::string postData;
-            // paramaterize
+
             // retreive from csv array index 0 = # of samples, 1 = sampling rate, 2 = type
-            
             // Post Info: 0: num-samples; 1: sampling-rate; 2: metric-type; 3: collections-sent; 4: transmission-count; 5: post-id 
             postData.append("4100,200,"); // 0, 1
-            switch(type) {
-                case PPG_SLOT0:
-                    postData.append("PPG0,"); 
-                    break;
-                case PPG_SLOT1:
-                    postData.append("PPG1,");
-                    break;
-                case ECG_SLOT0:
-                    postData.append("ECG0,");
-                    break;
+            switch (type) {
+            case PPG_SLOT0:
+                postData.append("PPG0,");
+                break;
+            case PPG_SLOT1:
+                postData.append("PPG1,");
+                break;
+            case ECG_SLOT0:
+                postData.append("ECG0,");
+                break;
+            default:
+                LOG_H_LN("[!] no such slot type exists");
             } // 2
 
             postData.append(std::to_string(_wcSent) + ","); // 3
             postData.append(std::to_string(_txCount) + ","); // 4
             postData.append(_postId + ","); // 5
             postData.append(_token + ",");
-
-            for(int i = 0; i < FRAME_LENGTH; i++) {
+            for (int i = 0; i < FRAME_LENGTH; i++) {
                 postData.append(std::to_string(frame[i]));
-                if(i != FRAME_LENGTH-1) postData.append(",");
+                if (i != FRAME_LENGTH - 1) postData.append(",");
             }
 
             _http->beginRequest();
@@ -254,33 +244,29 @@ namespace hf
             _http->connectionKeepAlive();
             _http->beginBody();
 
-            // Serial.println(postData.c_str());
+            // LOG_LN(postData.c_str());
             _http->print(postData.c_str());
             _http->endRequest();
-
             postData.clear();
-            
+
             _txCount++;
-
-            if(_txCount % 3 == 0)
-            {
+            if (_txCount % 3 == 0)
                 _wcSent++;
-            }
-            
+
             int statusCode = _http->responseStatusCode();
-            _http->responseBody();
-            // _postId = _http->responseBody().c_str();
+            const char *resBody = _http->responseBody().c_str();
+            
+            if(statusCode == 201) {
+                _postId = resBody;
+            } else {
+                _postId = "INIT";
+            }
+        
 
-            // CREATE LOGGER CLASS
-            #if (DEBUG && VERBOSE)
-            Serial.print(statusCode);
-            Serial.println(_postId.c_str());
-            #endif
-
-            if(statusCode != 200 || statusCode != 100){
-                return ERROR;
-            };
-
+            LOG(statusCode);
+            LOG(resBody);
+            LOG_LN(_postId.c_str());
+            
             delay(10);
 
             return 0;
@@ -295,14 +281,15 @@ namespace hf
             _http->get(TEST_ENDPOINT);
 
             int statusCode = _http->responseStatusCode();
-            #if (DEBUG && VERBOSE)
-            Serial.print(statusCode);
-            Serial.println(_http->responseBody());
-            #else
-            _http->responseBody();
-            #endif
+            const char *resBody = _http->responseBody().c_str();
 
-            if(statusCode != 200){
+            LOG(statusCode);
+            LOG_LN(resBody); 
+
+            _http->responseBody();
+
+
+            if (statusCode != 200) {
                 return ERROR;
             };
 

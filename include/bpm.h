@@ -5,12 +5,10 @@
 #include <Arduino.h>
 
 #include "constants.h"
-#include "config.h"
 #include "crets.h"
 
 #include "bpmSensor.h"
 #include "bpmWiFi.h"
-#include "bpmBle.h"
 #include ".env.h"
 
 namespace hf
@@ -104,27 +102,28 @@ namespace hf
 
         int initWiFi()
         {
-            if(!WIFI_ENABLED) return 0;
+            if (!WIFI_ENABLED) return 0;
 
             _bpmWiFi.initWiFi();
             if (_bpmWiFi.isWiFiConnected() && _bpmWiFi.isClientConnected())
             {
                 _opFlags.wiFiInit = 1;
-            } else {
+            }
+            else {
                 int giveUp = 20;
 
                 _opFlags.wiFiInit = 0;
-                Serial.println("[!] WiFi not connected: ");
-                while(!_bpmWiFi.isWiFiConnected() || !_bpmWiFi.isClientConnected() || !giveUp > 0) {
-                    Serial.print("|");
+                LOG_H_LN("[!] WiFi not connected: ");
+                while (!_bpmWiFi.isWiFiConnected() || !_bpmWiFi.isClientConnected() || !giveUp > 0) {
+                    LOG_H("|");
                     delay(800);
                     _bpmWiFi.initWiFi();
                     giveUp--;
                 }
 
-                if(!_bpmWiFi.isWiFiConnected() || !_bpmWiFi.isClientConnected()) {
-                    Serial.println("[!] BPM WiFi connection attempts failed");
-                    Serial.println("[*] Starting data collection without WiFi - stops after single frame");
+                if (!_bpmWiFi.isWiFiConnected() || !_bpmWiFi.isClientConnected()) {
+                    LOG_H_LN("[!] BPM WiFi connection attempts failed");
+                    LOG_H_LN("[*] Starting data collection without WiFi - stops after single frame");
                 }
             }
 
@@ -135,14 +134,14 @@ namespace hf
             _opFlags.identity = 0;
         }
 
-        int initIdentity(){
-            if(!_opFlags.wiFiInit || _opFlags.identity) return -1;
+        int initIdentity() {
+            if (!_opFlags.wiFiInit || _opFlags.identity) return -1;
 
             _bpmWiFi.initWebServer();
 
             int giveUp = 2000;
 
-            while(!_bpmWiFi.identityStatus() && giveUp > 0) {
+            while (!_bpmWiFi.identityStatus() && giveUp > 0) {
                 giveUp % 100 == 0 ? Serial.print(giveUp) : Serial.print(".");
                 delay(100);
 
@@ -151,10 +150,11 @@ namespace hf
 
             _bpmWiFi.endWebServer();
 
-            if(_bpmWiFi.identityStatus()) {
-                Serial.println("Wowee");
+            if (_bpmWiFi.identityStatus()) {
+                LOG_H_LN("Wowee");
                 _opFlags.identity = 1;
-            } else {
+            }
+            else {
                 return ERROR;
             }
 
@@ -193,7 +193,8 @@ namespace hf
                 delay(100);
             }
 
-            if(_opFlags.wiFiInit && !_opFlags.identity) {
+            if (_opFlags.wiFiInit && !_opFlags.identity)
+            {
                 initIdentity();
             }
 
@@ -204,7 +205,7 @@ namespace hf
 
         int txWindows(bool debug = false)
         {
-            if(!_opFlags.wiFiInit) {
+            if (!_opFlags.wiFiInit) {
                 return -1;
             }
 
@@ -227,29 +228,26 @@ namespace hf
 
         int sampleTx()
         {
-            if(!_opFlags.enabled) {
-                Serial.println("[*] Not enabled!");
+            if (!_opFlags.enabled)
+            {
+                LOG_H_LN("[*] Not enabled!");
                 return 0;
             }
-            
+
             if (!_opFlags.sensorInit || !_opFlags.configured || _opFlags.error)
             {
-                #if VERBOSE && DEBUG
-                Serial.println("[!] Cannot sample, not configured or error has occured");
-                #endif
+                LOG_H_LN("[!] Cannot sample, not configured or error has occured");
                 return -1;
             }
 
             if (_windowHandler.dataFull())
             {
-                #if VERBOSE && DEBUG
-                Serial.println("[!] DATA FULL");
-                Serial.print("0:");Serial.print(_opFlags.wiFiInit); Serial.print(_opFlags.configured); Serial.println(_opFlags.identity);
-                delay(100);
-                #endif
+
+                LOG_LN("[!] DATA FULL");
+                LOG_H("0:"); LOG(_opFlags.wiFiInit); LOG(_opFlags.configured); LOG_LN(_opFlags.identity);
+                DBG(delay(1000));
 
                 // wifi init again?
-
                 return 0;
             }
 
@@ -258,17 +256,18 @@ namespace hf
                 _opFlags.dataFull = 1;
                 if (_opFlags.wiFiInit && _opFlags.configured && _opFlags.identity && !_opFlags.error)
                 {
-                    #if VERBOSE && DEBUG
-                    Serial.print("0:");Serial.print(_opFlags.wiFiInit); Serial.print(_opFlags.configured); Serial.println(_opFlags.identity);
-                    Serial.println("[*] Ready to transmit...");
-                    #endif
+                    LOG_H_LN("[*] Ready to transmit...");
                     _opFlags.txReady = 1;
                 }
             }
 
             if (_opFlags.txReady && _opFlags.wiFiInit && _opFlags.identity)
             {
-                Serial.print("0:");Serial.print(_opFlags.txReady); Serial.print(_opFlags.configured); Serial.println(_opFlags.identity);
+                LOG_H("0:");
+                LOG(_opFlags.txReady);
+                LOG(_opFlags.configured);
+                LOG_LN(_opFlags.identity);
+
                 if (txWindows() >= 0) {
                     _opFlags.txReady = 0;
 
@@ -278,12 +277,23 @@ namespace hf
 
                     _opFlags.dataFull = 0;
 
-                return 1;
-                } else {
+                    return 1;
+                }
+                else {
                     return -1;
                 }
             }
             return 0;
+        }
+
+        void logDeviceInfo()
+        {
+            #if (!PRINT || !DEBUG || !VERBOSE)
+            return;
+            #endif
+            
+            LOG_H("[♥] Heartfelt hfBPM Firmware v"); LOG_H_LN(FIRMWARE_VERSION);
+
         }
 
         void printWindows(int printDelay = 10)
@@ -293,25 +303,21 @@ namespace hf
             return;
             #endif
 
-            Serial.println("BEGIN");
+            LOG_H_LN("BEGIN");
             #if (SLOT_COUNT >= 1)
-            #if(VERBOSE)
-            Serial.println("[>] PRINTING WINDOWS...");
-            #endif
+            LOG_H_LN("[>] PRINTING WINDOWS...");
             for (int i = 0; i < FRAME_LENGTH; i++) {
-                Serial.print(_ppgArr0[i]);
+                LOG(_ppgArr0[i]);
                 if (SLOT_COUNT == 1) Serial.println();
                 #if (SLOT_COUNT >= 2)
-                Serial.print(",");
-                Serial.print(_ppgArr1[i]);
+                LOG_H(","); LOG(_ppgArr1[i]);
                 #endif
                 #if (SLOT_COUNT >= 3)
-                Serial.print(",");
-                Serial.println(_ecgArr0[i]);
+                LOG_H(","); LOG_LN(_ecgArr0[i]);
                 #endif
                 delay(printDelay);
             }
-            Serial.println("END");
+            LOG_H_LN("END");
             #endif
         }
     };
