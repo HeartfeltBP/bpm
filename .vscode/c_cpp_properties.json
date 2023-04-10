@@ -10,6 +10,7 @@
             "includePath": [
                 "/home/kk/Documents/PlatformIO/Projects/bpm/include",
                 "/home/kk/Documents/PlatformIO/Projects/bpm/src",
+                "/home/kk/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src",
                 "/home/kk/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
                 "/home/kk/.platformio/packages/framework-arduinoespressif32/libraries/Update/src",
                 "/home/kk/Documents/PlatformIO/Projects/bpm/.pio/libdeps/seeed_xiao_esp32c3/ESPAsyncWebServer-esphome/src",
@@ -206,7 +207,6 @@
                 "/home/kk/.platformio/packages/framework-arduinoespressif32/variants/XIAO_ESP32C3",
                 "/home/kk/.platformio/packages/framework-arduinoespressif32/libraries/ArduinoOTA/src",
                 "/home/kk/.platformio/packages/framework-arduinoespressif32/libraries/AsyncUDP/src",
-                "/home/kk/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src",
                 "/home/kk/.platformio/packages/framework-arduinoespressif32/libraries/BluetoothSerial/src",
                 "/home/kk/.platformio/packages/framework-arduinoespressif32/libraries/DNSServer/src",
                 "/home/kk/.platformio/packages/framework-arduinoespressif32/libraries/EEPROM/src",
@@ -240,6 +240,7 @@
                 "path": [
                     "/home/kk/Documents/PlatformIO/Projects/bpm/include",
                     "/home/kk/Documents/PlatformIO/Projects/bpm/src",
+                    "/home/kk/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src",
                     "/home/kk/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src",
                     "/home/kk/.platformio/packages/framework-arduinoespressif32/libraries/Update/src",
                     "/home/kk/Documents/PlatformIO/Projects/bpm/.pio/libdeps/seeed_xiao_esp32c3/ESPAsyncWebServer-esphome/src",
@@ -436,7 +437,6 @@
                     "/home/kk/.platformio/packages/framework-arduinoespressif32/variants/XIAO_ESP32C3",
                     "/home/kk/.platformio/packages/framework-arduinoespressif32/libraries/ArduinoOTA/src",
                     "/home/kk/.platformio/packages/framework-arduinoespressif32/libraries/AsyncUDP/src",
-                    "/home/kk/.platformio/packages/framework-arduinoespressif32/libraries/BLE/src",
                     "/home/kk/.platformio/packages/framework-arduinoespressif32/libraries/BluetoothSerial/src",
                     "/home/kk/.platformio/packages/framework-arduinoespressif32/libraries/DNSServer/src",
                     "/home/kk/.platformio/packages/framework-arduinoespressif32/libraries/EEPROM/src",
@@ -485,7 +485,7 @@
                 "ARDUINO=10812",
                 "ARDUINO_VARIANT=\"XIAO_ESP32C3\"",
                 "ARDUINO_BOARD=\"Seeed Studio XIAO ESP32C3\"",
-                "ARDUINO_PARTITION_default",
+                "ARDUINO_PARTITION_bare_minimum_2MB",
                 ""
             ],
             "cStandard": "c99",

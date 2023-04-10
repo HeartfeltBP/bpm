@@ -7,6 +7,7 @@
 #include "constants.h"
 #include "crets.h"
 
+#include "bpmBle.h"
 #include "bpmSensor.h"
 #include "bpmWiFi.h"
 #include ".env.h"
@@ -41,7 +42,7 @@ namespace hf
         MaxFifo _maxFifo;
         BpmSensor _bpmSensor;
         BpmWiFi _bpmWiFi;
-        // BpmBle _bpmBle;
+        BpmBle _bpmBle;
 
         // const char* deviceId;
 
@@ -50,8 +51,11 @@ namespace hf
             _windowHandler(WindowHandler(_ppgArr0, _ppgArr1, _ecgArr0)),
             _maxFifo(MaxFifo(&_maxReg, &_windowHandler)),
             _bpmSensor(BpmSensor(&_maxFifo, &_windowHandler)),
-            _bpmWiFi(BpmWiFi(URL, SSID, PASS))
+            _bpmWiFi(BpmWiFi(URL, SSID, PASS)),
+            _bpmBle(BpmBle())
         {
+            // _bpmBle = new BpmBle();
+            // _bpmBle->start();
             _opFlags.enabled = 1;
         }
 
@@ -197,6 +201,22 @@ namespace hf
             {
                 initIdentity();
             }
+            
+            _bpmBle.start();
+            // BLEDevice::init("hf-BPM");
+            // BLEServer *_server = BLEDevice::createServer();
+            // BLEService *_service = _server->createService(SERVICE_UUID);
+            // BLECharacteristic *_char = _service->createCharacteristic(CHAR_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE);
+            // _char->setValue("not set");
+            // LOG_H_LN("[*] BLE CONSTRUCTED");
+            // _service->start();
+            // BLEAdvertising *_advertising = _server->getAdvertising();
+
+            // _advertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue ???
+            // _advertising->setMinPreferred(0x12);
+            // BLEDevice::startAdvertising();
+            // _advertising->start();
+            // LOG_H_LN("[*] BLE Started...");
 
             _opFlags.configured = _opFlags.i2cInit && _opFlags.sensorInit;
 
@@ -250,6 +270,8 @@ namespace hf
                 // wifi init again?
                 return 0;
             }
+
+            // LOG_H_LN("[☢]"); LOG_LN(_bpmBle.getVal());
 
             if (_bpmSensor.sample() > 0)
             {
