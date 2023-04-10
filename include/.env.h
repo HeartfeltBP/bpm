@@ -10,13 +10,15 @@
 // #define PASS "Room936BungusChutts"
 
 // #define URL "172.20.10.6"
-// #define URL "192.168.12.75"
+#define URL "192.168.12.75"
 // #define URL "192.168.12.239"
 // #define URL "172.31.34.178"
 // #define URL "192.168.12.75"
-#define URL "heartfelt-0.web.app"
+// #define URL "heartfelt-0.web.app"
 
-#define LPORT 80
+// #define LPORT 443
+// #define LPORT 80
+#define LPORT 5173
 // #define LPORT 4173
 
 #define CERTIFICATE_WEBAPP  \

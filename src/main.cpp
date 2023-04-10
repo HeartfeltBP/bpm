@@ -19,6 +19,7 @@ void setup() {
     Serial.println("[!] Setup Complete");
     #endif
 
+    bpm.logDeviceInfo();
     delay(400);
 }
 

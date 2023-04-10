@@ -7,7 +7,7 @@
 #include "constants.h"
 #include "crets.h"
 
-#include "bpmBle.h"
+// #include "bpmBle.h"
 #include "bpmSensor.h"
 #include "bpmWiFi.h"
 #include ".env.h"
@@ -42,7 +42,7 @@ namespace hf
         MaxFifo _maxFifo;
         BpmSensor _bpmSensor;
         BpmWiFi _bpmWiFi;
-        BpmBle _bpmBle;
+        // BpmBle _bpmBle;
 
         // const char* deviceId;
 
@@ -51,8 +51,8 @@ namespace hf
             _windowHandler(WindowHandler(_ppgArr0, _ppgArr1, _ecgArr0)),
             _maxFifo(MaxFifo(&_maxReg, &_windowHandler)),
             _bpmSensor(BpmSensor(&_maxFifo, &_windowHandler)),
-            _bpmWiFi(BpmWiFi(URL, SSID, PASS)),
-            _bpmBle(BpmBle())
+            _bpmWiFi(BpmWiFi(URL, SSID, PASS))
+            // _bpmBle(BpmBle()) // causes memory error...
         {
             // _bpmBle = new BpmBle();
             // _bpmBle->start();
@@ -202,7 +202,7 @@ namespace hf
                 initIdentity();
             }
             
-            _bpmBle.start();
+            // _bpmBle.start();
             // BLEDevice::init("hf-BPM");
             // BLEServer *_server = BLEDevice::createServer();
             // BLEService *_service = _server->createService(SERVICE_UUID);
