@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <HTTPClient.h>
 #include <HttpClient.h>
 #include <string>
 #include <ESPAsyncWebServer.h>
@@ -10,6 +12,7 @@
 
 #include ".env.h"
 #include "crets.h"
+#include "constants.h"
 
 namespace hf
 {
@@ -19,9 +22,8 @@ namespace hf
     protected:
         // WiFiServer _server = WiFiServer(80);
         AsyncWebServer _server;
-        WiFiClient _client;
+        WiFiClientSecure _client;
         HttpClient* _http;
-
         byte _wlStatus = WL_IDLE_STATUS;
         byte _clStatus = 0;
         std::string _postId = "INIT";
@@ -114,6 +116,7 @@ namespace hf
 
         int initWiFi(bool enterprise = false, std::string ssid = SSID, std::string pass = PASS, std::string url = URL)
         {
+            _client.setCACert(CERTIFICATE_WEBAPP);
             _http = new HttpClient(_client, URL, LPORT);
 
             if (connectWiFi(ssid, pass, enterprise) >= 0 && connectClient(url) >= 0)
@@ -140,7 +143,6 @@ namespace hf
             // allow CORS from link
             DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
             DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "authorization");
-            DefaultHeaders::Instance().addHeader("Upgrade-Insecure-Requests", "1");
             
             // handle CORS prefetch
             _server.onNotFound([](AsyncWebServerRequest* request) {

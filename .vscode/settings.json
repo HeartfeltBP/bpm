@@ -49,5 +49,6 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "regex": "cpp"
-    }
+    },
+    "dotenv.enableAutocloaking": false
 }
