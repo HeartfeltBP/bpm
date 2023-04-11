@@ -33,6 +33,11 @@ namespace hf {
                 LOG_H_LN("[*] BLE Started...");
             }
 
+            int setVal(std::string value) {
+                _char->setValue(value.c_str());
+                return 0;
+            }
+
             const char *getVal()
             {
                 const char *data = _char->getValue().c_str();

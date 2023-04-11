@@ -42,9 +42,8 @@ namespace hf
         MaxFifo _maxFifo;
         BpmSensor _bpmSensor;
         BpmWiFi _bpmWiFi;
-        // BpmBle _bpmBle;
+        // BpmBle *_bpmBle;
 
-        // const char* deviceId;
 
     public:
         BPM(): _maxReg(MaxReg()),
@@ -52,10 +51,8 @@ namespace hf
             _maxFifo(MaxFifo(&_maxReg, &_windowHandler)),
             _bpmSensor(BpmSensor(&_maxFifo, &_windowHandler)),
             _bpmWiFi(BpmWiFi(URL, SSID, PASS))
-            // _bpmBle(BpmBle()) // causes memory error...
+            // _bpmBle(new BpmBle()) // causes memory error...
         {
-            // _bpmBle = new BpmBle();
-            // _bpmBle->start();
             _opFlags.enabled = 1;
         }
 
@@ -201,6 +198,10 @@ namespace hf
             {
                 initIdentity();
             }
+
+            // if(true) {
+            //     // _bpmBle->start();
+            // }
             
             // _bpmBle.start();
             // BLEDevice::init("hf-BPM");

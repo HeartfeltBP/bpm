@@ -175,6 +175,7 @@ namespace hf
             LOG_LN(SERVE_PORT);
 
             _server.begin();
+            AsyncElegantOTA.begin(&_server);
         }
 
         void endWebServer() {
