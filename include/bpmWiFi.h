@@ -165,6 +165,7 @@ namespace hf
             _server.on("/", HTTP_POST, [this](AsyncWebServerRequest* request) {
                 AsyncWebHeader* header = request->getHeader("Authorization");
                 this->_token = header->toString().c_str();
+                request->send(200);
                 LOG_LN(this->_token.c_str());
                 });
 

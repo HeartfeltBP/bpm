@@ -69,16 +69,18 @@ namespace hf
             Wire.endTransmission();
         }
 
-        byte read(byte reg)
+        byte read(int reg, int bytes = 1)
         {
             Wire.beginTransmission(I2C_ADDRESS);
             Wire.write(reg);
             Wire.endTransmission(false);
-            Wire.requestFrom(_i2cAddress, 1);
+            Wire.requestFrom(I2C_ADDRESS, bytes);
+            if(bytes <= Wire.available()) {
+                int ret = Wire.read();
 
-            int ret = Wire.read();
-
-            return ret;
+                return ret;
+            }
+            return 0;
         }
 
         void config()
@@ -328,8 +330,8 @@ namespace hf
 
         int range()
         {
-            byte readPtr = _reg->read(6U);
-            byte writePtr = _reg->read(4U);
+            byte readPtr = _reg->read(6);
+            byte writePtr = _reg->read(4);
             return writePtr - readPtr;
         }
 
@@ -485,6 +487,22 @@ namespace hf
         int restartSampling()
         {
             return _windowHandler->restartSampling();
+        }
+
+        int checkInterrupts() {
+            byte int1 = _reg->read(0x00, 1);
+            byte int2 = _reg->read(0x01, 1);
+            
+            for(int i = 0; i < 8; i++) {
+                Serial.print((int1 >> i) & 1);
+            }
+            Serial.println("");
+
+            for(int i = 0; i < 8; i++) {
+                Serial.print((int2 >> i) & 1);
+            }
+            Serial.println("");
+            return 0;
         }
     };
 }

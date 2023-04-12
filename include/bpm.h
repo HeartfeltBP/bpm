@@ -251,6 +251,8 @@ namespace hf
                 return 0;
             }
 
+            // _bpmSensor.checkInterrupts();
+
             if (_bpmSensor.sample() > 0)
             {
                 _opFlags.dataFull = 1;
