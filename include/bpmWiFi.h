@@ -7,6 +7,7 @@
 #include <string>
 #include <ESPAsyncWebServer.h>
 #include <AsyncElegantOTA.h>
+#include "esp_wpa2.h"
 
 #include ".env.h"
 #include "crets.h"
@@ -36,9 +37,11 @@ namespace hf
         int connectWiFi(std::string ssid, std::string password, boolean enterprise = false)
         {
             if (enterprise) {
-                LOG_H_LN("NOT_IMPLEMENTED");
-                // _wlStatus = WiFi.begin(SSID, WPA2_AUTH_PEAP, PASS);
-                return -1;
+                _wlStatus = WiFi.begin(SSID, PASS);
+                esp_wifi_sta_wpa2_ent_set_identity((uint8_t *)USER, strlen(USER));
+                esp_wifi_sta_wpa2_ent_set_username((uint8_t *)USER, strlen(USER));
+                esp_wifi_sta_wpa2_ent_set_password((uint8_t *)PASS, strlen(PASS));
+                esp_wifi_sta_wpa2_ent_enable();
             }
             else 
             {
@@ -49,7 +52,7 @@ namespace hf
 
             if (_wlStatus != WL_CONNECTED)
             {
-                int giveUp = 20;
+                int giveUp = 80;
                 while (_wlStatus != WL_CONNECTED)
                 {
                     #if (DEBUG && VERBOSE)
