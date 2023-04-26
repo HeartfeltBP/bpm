@@ -139,7 +139,7 @@ namespace hf
 
             _bpmWiFi.initWebServer();
 
-            int giveUp = 2000;
+            int giveUp = 20000;
 
             while (!_bpmWiFi.identityStatus() && giveUp > 0) {
                 giveUp % 100 == 0 ? Serial.print(giveUp) : Serial.print(".");
@@ -250,6 +250,8 @@ namespace hf
                 // wifi init again?
                 return 0;
             }
+
+            // _bpmSensor.checkInterrupts();
 
             if (_bpmSensor.sample() > 0)
             {

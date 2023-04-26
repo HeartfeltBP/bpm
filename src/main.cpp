@@ -20,12 +20,6 @@ void setup() {
     #endif
 
     delay(400);
-
-    LOG_LN("BALLSBALLSBALLS");
-    LOG_LN("BALLSBALLSBALLS");
-    LOG_LN("BALLSBALLSBALLS");
-    LOG_LN("BALLSBALLSBALLS");
-    LOG_LN("BALLSBALLSBALLS");
 }
 
 void loop() {
