@@ -27,6 +27,7 @@ namespace hf
         byte _clStatus = 0;
         std::string _postId = "INIT";
         std::string _token;
+        std::string _serveIp;
 
         bool _init = 0;
 
@@ -115,11 +116,12 @@ namespace hf
         BpmWiFi(std::string url = URL, std::string ssid = SSID, std::string password = PASS)
             : _server(AsyncWebServer(SERVE_PORT)) {}
 
-        int initWiFi(bool enterprise = false, std::string ssid = SSID, std::string pass = PASS, std::string url = URL)
-        {
-            _http = new HttpClient(_client, URL, LPORT);
 
-            if (connectWiFi(ssid, pass, enterprise) >= 0 && connectClient(url) >= 0)
+        int initWiFi()
+        {
+            // _http = new HttpClient(_client, URL, LPORT);
+
+            if (connectWiFi(SSID, PASS, ENTERPRISE) >= 0)
             {
                 _init = 1;
                 LOG_H_LN("[*] WIFI CONNECTED!");
@@ -131,6 +133,25 @@ namespace hf
                 _init = 0;
                 return -1;
             }
+        }
+
+        int initClient() 
+        {
+            _http = new HttpClient(_client, URL, LPORT);
+
+            if (connectWiFi(SSID, PASS, ENTERPRISE) >= 0)
+            {
+                _init = 1;
+                LOG_H_LN("[*] WIFI CONNECTED!");
+                LOG_H("[*] Connected to"); LOG_LN(WiFi.getHostname());
+                return getTest();
+            }
+            else
+            {
+                _init = 0;
+                return -1;
+            }
+
         }
 
         void initWebServer()
@@ -166,13 +187,27 @@ namespace hf
                 });
 
             _server.on("/", HTTP_POST, [this](AsyncWebServerRequest* request) {
-                AsyncWebHeader* header = request->getHeader("Authorization");
-                this->_token = header->toString().c_str();
+                AsyncWebHeader* auth = request->getHeader("Authorization");
+                AsyncWebHeader* info = request->getHeader("Host"); // host:port
+
+                if(auth != nullptr) 
+                {
+                    LOG_H_LN("got auth");
+                    LOG_LN(this->_token.c_str());
+                    this->_token = auth->toString().c_str();
+                }
+
+                if(info != nullptr) 
+                {
+                    LOG_H_LN("got auth");
+                    LOG_LN(this->_serveIp.c_str());
+                    this->_serveIp = info->toString().c_str();
+                }
+
                 request->send(200);
-                LOG_LN(this->_token.c_str());
                 });
 
-            LOG_H("SERVER RUNNING ON IP: "); 
+            LOG_H("SERVER RUNNING ON IP: ");
             LOG(WiFi.localIP()); 
             LOG_H(":"); 
             LOG_LN(SERVE_PORT);
@@ -187,6 +222,11 @@ namespace hf
         bool identityStatus()
         {
             return (_token.length() > 0) ? true : false;
+        }
+
+        bool ipStatus()
+        {
+            return (_serveIp.length() > 0) ? true : false;
         }
 
         const char* getIdentityToken()

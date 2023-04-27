@@ -16,6 +16,7 @@
 #define VERBOSE         true
 #define PRINT           false
 #define TB              false
+#define ENTERPRISE      false
 
 #if DEBUG
 #define SERIAL_ENABLED  true

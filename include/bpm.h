@@ -23,6 +23,7 @@ namespace hf
             bool txReady = 0;
             bool configured = 0;
             bool wiFiInit = 0;
+            bool linkInit = 0;
             bool sensorInit = 0;
             bool i2cInit = 0;
             bool serialInit = 0;
@@ -105,36 +106,108 @@ namespace hf
             if (!WIFI_ENABLED) return 0;
 
             _bpmWiFi.initWiFi();
-            if (_bpmWiFi.isWiFiConnected() && _bpmWiFi.isClientConnected())
+
+            if (_bpmWiFi.isWiFiConnected())
             {
                 _opFlags.wiFiInit = 1;
             }
-            else {
+            else
+            {
                 int giveUp = 20;
 
                 _opFlags.wiFiInit = 0;
+
                 LOG_H_LN("[!] WiFi not connected: ");
-                while (!_bpmWiFi.isWiFiConnected() || !_bpmWiFi.isClientConnected() || !giveUp > 0) {
-                    LOG_H("|");
-                    delay(800);
+
+                while (!_bpmWiFi.isWiFiConnected() || !giveUp > 0) {
+                    LOG_H("|W|");
+                    delay(600);
                     _bpmWiFi.initWiFi();
                     giveUp--;
                 }
 
-                if (!_bpmWiFi.isWiFiConnected() || !_bpmWiFi.isClientConnected()) {
+
+                if (!_bpmWiFi.isWiFiConnected()) {
                     LOG_H_LN("[!] BPM WiFi connection attempts failed");
                     LOG_H_LN("[*] Starting data collection without WiFi - stops after single frame");
+                    return -1;
+                }
+                else
+                {
+                    _opFlags.wiFiInit = 1;
                 }
             }
 
             return 0;
         }
 
+        /**
+         * Connects to link client
+        */
+        int initLink()
+        {
+            if (!WIFI_ENABLED) return 0;
+
+            int giveUp = 20;
+
+            if (!_opFlags.wiFiInit) {
+                return -1;
+            }
+
+            _bpmWiFi.initWebServer();
+
+            int giveUp = 1000;
+
+            while (!_bpmWiFi.ipStatus() && giveUp > 0) {
+                giveUp % 100 == 0 ? Serial.print(giveUp) : Serial.print(".");
+                delay(200);
+                giveUp--;
+            }
+
+            if (!_bpmWiFi.isWiFiConnected()) {
+                LOG_H_LN("[!] Failed to recieve ip address for transmission.");
+                return -1;
+            }
+            else
+            {
+                _opFlags.wiFiInit = 1;
+            }
+
+            _bpmWiFi.initClient();
+
+            if (_bpmWiFi.isClientConnected())
+            {
+                _opFlags.linkInit = 1;
+            }
+            else
+            {
+                while (!_bpmWiFi.isClientConnected() || !giveUp > 0) {
+                    LOG_H("|c|");
+                    delay(800);
+                    _bpmWiFi.initClient();
+                    giveUp--;
+                }
+
+                if (!_bpmWiFi.isWiFiConnected()) {
+                    LOG_H_LN("[!] BPM WiFi connection attempts failed");
+                    LOG_H_LN("[*] Starting data collection without WiFi - stops after single frame");
+                    return -1;
+                }
+                else
+                {
+                    _opFlags.wiFiInit = 1;
+                }
+
+            }
+            return 0;
+
+        }
+
         void invalidateIdentity() {
             _opFlags.identity = 0;
         }
 
-        int initIdentity() {
+        int initPairing() {
             if (!_opFlags.wiFiInit || _opFlags.identity) return -1;
 
             _bpmWiFi.initWebServer();
@@ -193,9 +266,16 @@ namespace hf
                 delay(100);
             }
 
+            if (_opFlags.wiFiInit && !_opFlags.linkInit)
+            {
+
+                // review
+                initLink();
+            }
+
             if (_opFlags.wiFiInit && !_opFlags.identity)
             {
-                initIdentity();
+                initPairing();
             }
 
             _opFlags.configured = _opFlags.i2cInit && _opFlags.sensorInit;
@@ -293,7 +373,7 @@ namespace hf
             #if (!PRINT || !DEBUG || !VERBOSE)
             return;
             #endif
-            
+
             LOG_H("[♥] Heartfelt hfBPM Firmware v"); LOG_H_LN(FIRMWARE_VERSION);
 
         }
