@@ -28,7 +28,7 @@ namespace hf
             bool i2cInit = 0;
             bool serialInit = 0;
             bool proximity = 0;
-            bool identity = 0;
+            bool paired = 0;
             bool dataFull = 0;
             bool error = 0;
         } _opFlags;
@@ -51,7 +51,7 @@ namespace hf
             _windowHandler(WindowHandler(_ppgArr0, _ppgArr1, _ecgArr0)),
             _maxFifo(MaxFifo(&_maxReg, &_windowHandler)),
             _bpmSensor(BpmSensor(&_maxFifo, &_windowHandler)),
-            _bpmWiFi(BpmWiFi(URL, SSID, PASS))
+            _bpmWiFi(BpmWiFi())
         {
             _opFlags.enabled = 1;
         }
@@ -116,7 +116,6 @@ namespace hf
                 int giveUp = 20;
 
                 _opFlags.wiFiInit = 0;
-
                 LOG_H_LN("[!] WiFi not connected: ");
 
                 while (!_bpmWiFi.isWiFiConnected() || !giveUp > 0) {
@@ -129,7 +128,7 @@ namespace hf
 
                 if (!_bpmWiFi.isWiFiConnected()) {
                     LOG_H_LN("[!] BPM WiFi connection attempts failed");
-                    LOG_H_LN("[*] Starting data collection without WiFi - stops after single frame");
+                    LOG_H_LN("[*] Starting data collection without WiFi - stops after single frame - reset to retry");
                     return -1;
                 }
                 else
@@ -146,17 +145,20 @@ namespace hf
         */
         int initLink()
         {
-            if (!WIFI_ENABLED) return 0;
 
-            int giveUp = 20;
+            if (!WIFI_ENABLED) return 0;
 
             if (!_opFlags.wiFiInit) {
                 return -1;
             }
 
+
+
             _bpmWiFi.initWebServer();
 
             int giveUp = 1000;
+            LOG_H_LN(_bpmWiFi.ipStatus());
+            delay(2000);
 
             while (!_bpmWiFi.ipStatus() && giveUp > 0) {
                 giveUp % 100 == 0 ? Serial.print(giveUp) : Serial.print(".");
@@ -164,13 +166,11 @@ namespace hf
                 giveUp--;
             }
 
-            if (!_bpmWiFi.isWiFiConnected()) {
+            _bpmWiFi.endWebServer();
+
+            if (!_bpmWiFi.ipStatus()) {
                 LOG_H_LN("[!] Failed to recieve ip address for transmission.");
                 return -1;
-            }
-            else
-            {
-                _opFlags.wiFiInit = 1;
             }
 
             _bpmWiFi.initClient();
@@ -188,14 +188,14 @@ namespace hf
                     giveUp--;
                 }
 
-                if (!_bpmWiFi.isWiFiConnected()) {
-                    LOG_H_LN("[!] BPM WiFi connection attempts failed");
-                    LOG_H_LN("[*] Starting data collection without WiFi - stops after single frame");
+                if (!_bpmWiFi.isClientConnected()) {
+                    LOG_H_LN("[!] BPM Link connection attempts failed");
+                    LOG_H_LN("[*] Starting data collection without Link - stops after single frame");
                     return -1;
                 }
                 else
                 {
-                    _opFlags.wiFiInit = 1;
+                    _opFlags.linkInit = 1;
                 }
 
             }
@@ -203,12 +203,13 @@ namespace hf
 
         }
 
-        void invalidateIdentity() {
-            _opFlags.identity = 0;
+        void invalidateLink() 
+        {
+            _opFlags.paired = 0;
         }
 
         int initPairing() {
-            if (!_opFlags.wiFiInit || _opFlags.identity) return -1;
+            if (!_opFlags.wiFiInit || _opFlags.paired) return -1;
 
             _bpmWiFi.initWebServer();
 
@@ -225,7 +226,7 @@ namespace hf
 
             if (_bpmWiFi.identityStatus()) {
                 LOG_H_LN("Wowee");
-                _opFlags.identity = 1;
+                _opFlags.paired = 1;
             }
             else {
                 return ERROR;
@@ -268,14 +269,18 @@ namespace hf
 
             if (_opFlags.wiFiInit && !_opFlags.linkInit)
             {
-
                 // review
                 initLink();
+                delay(100);
+                LOG_H_LN("111111");
             }
 
-            if (_opFlags.wiFiInit && !_opFlags.identity)
+            if (_opFlags.wiFiInit && !_opFlags.paired)
             {
+                LOG_H_LN("222222");
+                delay(100);
                 initPairing();
+                delay(100);
             }
 
             _opFlags.configured = _opFlags.i2cInit && _opFlags.sensorInit;
@@ -324,7 +329,7 @@ namespace hf
             {
 
                 LOG_LN("[!] DATA FULL");
-                LOG_H("0:"); LOG(_opFlags.wiFiInit); LOG(_opFlags.configured); LOG_LN(_opFlags.identity);
+                LOG_H("0:"); LOG(_opFlags.wiFiInit); LOG(_opFlags.configured); LOG_LN(_opFlags.paired);
                 DBG(delay(1000));
 
                 // wifi init again?
@@ -336,19 +341,19 @@ namespace hf
             if (_bpmSensor.sample() > 0)
             {
                 _opFlags.dataFull = 1;
-                if (_opFlags.wiFiInit && _opFlags.configured && _opFlags.identity && !_opFlags.error)
+                if (_opFlags.wiFiInit && _opFlags.configured && _opFlags.paired && !_opFlags.error)
                 {
                     LOG_H_LN("[*] Ready to transmit...");
                     _opFlags.txReady = 1;
                 }
             }
 
-            if (_opFlags.txReady && _opFlags.wiFiInit && _opFlags.identity)
+            if (_opFlags.txReady && _opFlags.wiFiInit && _opFlags.paired)
             {
                 LOG_H("0:");
                 LOG(_opFlags.txReady);
                 LOG(_opFlags.configured);
-                LOG_LN(_opFlags.identity);
+                LOG_LN(_opFlags.paired);
 
                 if (txWindows() >= 0) {
                     _opFlags.txReady = 0;

@@ -10,10 +10,6 @@ void setup() {
       return;
     }
 
-    if (WIFI_ENABLED && bpm.initWiFi() < 0) {
-      return;
-    }
-
     #if (DEBUG && VERBOSE)
     dotPrinter(8, *"*", 10);
     Serial.println("[!] Setup Complete");

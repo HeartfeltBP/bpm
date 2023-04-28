@@ -28,6 +28,7 @@ namespace hf
         std::string _postId = "INIT";
         std::string _token;
         std::string _serveIp;
+        int _servePort;
 
         bool _init = 0;
 
@@ -80,9 +81,13 @@ namespace hf
             return 0;
         }
 
-        int connectClient(std::string url)
+        int connectClient()
         {
-            _clStatus = _client.connect(URL, LPORT);
+            if(!ipStatus()) {
+                LOG_H_LN("[!] NOT LINKED W. LINK");
+                return -1;
+            }
+            _clStatus = _client.connect(_serveIp.c_str(), _servePort);
 
             if (!_clStatus)
             {
@@ -97,7 +102,7 @@ namespace hf
                     LOG(_clStatus);
                     LOG_H_LN(" }");
 
-                    _clStatus = _client.connect(URL, LPORT);
+                    _clStatus = _client.connect(_serveIp.c_str(), _servePort);
 
                     giveUp--;
                     if (giveUp <= 0)
@@ -113,20 +118,20 @@ namespace hf
 
     public:
         // try constructing the http client
-        BpmWiFi(std::string url = URL, std::string ssid = SSID, std::string password = PASS)
+        BpmWiFi()
             : _server(AsyncWebServer(SERVE_PORT)) {}
 
 
         int initWiFi()
         {
-            // _http = new HttpClient(_client, URL, LPORT);
 
             if (connectWiFi(SSID, PASS, ENTERPRISE) >= 0)
             {
                 _init = 1;
                 LOG_H_LN("[*] WIFI CONNECTED!");
-                LOG_H("[*] Connected to"); LOG_LN(WiFi.getHostname());
-                return getTest();
+                // LOG_H("[*] Connected to"); LOG_LN(WiFi.getHostname());
+                // return getTest();
+                return 0;
             }
             else
             {
@@ -137,13 +142,17 @@ namespace hf
 
         int initClient() 
         {
-            _http = new HttpClient(_client, URL, LPORT);
+            if(!_init || !ipStatus()) {
+                LOG_H_LN("[!] WiFi or IP not initialized, aborting Link");
+                return 0;
+            }
 
-            if (connectWiFi(SSID, PASS, ENTERPRISE) >= 0)
+            _http = new HttpClient(_client, _serveIp.c_str(), _servePort);
+
+            if (connectClient() >= 0)
             {
                 _init = 1;
-                LOG_H_LN("[*] WIFI CONNECTED!");
-                LOG_H("[*] Connected to"); LOG_LN(WiFi.getHostname());
+                LOG_H_LN("[*] CLIENT CONNECTED!");
                 return getTest();
             }
             else
@@ -188,20 +197,43 @@ namespace hf
 
             _server.on("/", HTTP_POST, [this](AsyncWebServerRequest* request) {
                 AsyncWebHeader* auth = request->getHeader("Authorization");
-                AsyncWebHeader* info = request->getHeader("Host"); // host:port
+                AsyncWebHeader* info = request->getHeader("Origin"); // http://host:port
 
-                if(auth != nullptr) 
+                std::string hostDelimter = "//";
+                std::string colonDelimter = ":";
+                
+
+                if(auth != nullptr && auth->toString().length() > 0) 
                 {
                     LOG_H_LN("got auth");
-                    LOG_LN(this->_token.c_str());
                     this->_token = auth->toString().c_str();
+                    LOG_LN(this->_token.c_str());
+                }
+                else 
+                {
+                    LOG_H_LN("[!] Failed to retrieve auth token");
                 }
 
-                if(info != nullptr) 
+                if(info != nullptr && info->toString().length() > 0) 
                 {
-                    LOG_H_LN("got auth");
+                    std::string origin = info->toString().c_str();
+
+                    std::string hostAndPort = origin.substr(origin.find("//")+2, origin.length());
+                    std::string host = hostAndPort.substr(0, hostAndPort.find(":"));
+                    std::string port = hostAndPort.substr(hostAndPort.find(":")+1, hostAndPort.length());
+                    _servePort = stoi(port);
+
+                    LOG_LN(hostAndPort.c_str());
+                    LOG_LN(host.c_str());
+                    LOG_LN(_servePort);
+
+                    LOG_H_LN("got ip address");
+                    this->_serveIp = host;
                     LOG_LN(this->_serveIp.c_str());
-                    this->_serveIp = info->toString().c_str();
+                }
+                else
+                {
+                    LOG_H_LN("[!] Failed to retrieve ip address");
                 }
 
                 request->send(200);
@@ -355,14 +387,13 @@ namespace hf
         {
             if (WiFi.status() != WL_CONNECTED)
             {
-                _client.stop();
                 WiFi.disconnect();
-                initWiFi(SSID, PASS, URL);
+                initWiFi();
             }
-            if (!_client.connected())
+            if (!_client.connected() && ipStatus())
             {
                 _client.stop();
-                connectClient(URL);
+                initClient();
             }
         }
     };
