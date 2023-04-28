@@ -30,7 +30,7 @@
 
 #define I2C_ADDRESS     94
 #define FRAME_LENGTH   4100
-#define SLOT_COUNT      3
+#define SLOT_COUNT      2
 #define BUFFER_LENGTH   32
 #define SAMPLING_RATE   200
 

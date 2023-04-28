@@ -278,7 +278,17 @@ namespace hf
 
         int restartSampling()
         {
-            if ((_slotIter[0] == -1) && (_slotIter[1] == -1) && (_slotIter[2] == -1))
+            bool readyToReset = false;
+
+            for(int i = 0; i < SLOT_COUNT; i++) {
+                if(_slotIter[i] == -1) {
+                    readyToReset = true ;
+                } else {
+                    readyToReset = false;
+                }
+            }
+            
+            if (readyToReset)
             {
                 _slotIter[0] = 0;
                 _slotIter[1] = 0;
